@@ -3,13 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Sidebar } from "./Sidebar";
-import { BuildingIcon, CompassIcon, GaugeIcon, SlidersIcon } from "./icons";
+import { CompassIcon, SlidersIcon, UserIcon } from "./icons";
 
 const MOBILE_NAV = [
   { href: "/oportunidades", label: "Oportunidades", icon: CompassIcon },
-  { href: "/panel", label: "Panel", icon: GaugeIcon },
-  { href: "/simulador", label: "Simulador", icon: SlidersIcon },
-  { href: "/impacto", label: "Impacto", icon: BuildingIcon },
+  { href: "/simulador", label: "Plan", icon: SlidersIcon },
+  { href: "/configurar", label: "Perfil", icon: UserIcon },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -24,7 +23,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <span className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-primary-foreground font-bold text-xs">
               M
             </span>
-            <span className="font-bold">MetaUTP</span>
+            <span className="font-bold">Meta<span className="text-primary">UTP</span></span>
           </Link>
         </header>
 

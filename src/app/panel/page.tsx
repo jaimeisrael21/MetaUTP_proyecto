@@ -27,7 +27,7 @@ export default function PanelPage() {
   const router = useRouter();
   const { session, hydrated: sessionHydrated } = useSession();
   const { profile, update, hydrated: profileHydrated } = useProfile();
-  const [entryMethod, setEntryMethod] = useState<"manual" | "ocr">("manual");
+  const [entryMethod, setEntryMethod] = useState<"manual" | "ocr" | null>(null);
   const courses = profile.courses;
 
   useEffect(() => {
@@ -79,19 +79,22 @@ export default function PanelPage() {
   return (
     <AppShell>
       <div className="mx-auto max-w-6xl px-5 py-7 md:px-10 md:py-10">
-        <div className="max-w-2xl">
-          <SetupProgress current={2} />
-        </div>
+        {!profile.academicSetupComplete && (
+          <div className="max-w-2xl">
+            <SetupProgress current={2} />
+          </div>
+        )}
 
-        <header className="mt-8 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between page-enter">
+        <header className={`${profile.academicSetupComplete ? "mt-1" : "mt-8"} flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between page-enter`}>
           <div>
             <p className="eyebrow">Tu información académica</p>
             <h1 className="mt-2 text-3xl font-bold tracking-tight text-canvas-foreground md:text-4xl">
-              Completa tu ciclo actual
+              {profile.academicSetupComplete ? "Revisa tus cursos y notas" : "Completa tu ciclo actual"}
             </h1>
             <p className="mt-3 max-w-2xl text-base leading-7 text-canvas-foreground/70">
-              Añade los cursos que llevas con sus créditos y notas. Revisarás todo antes de
-              usarlo para personalizar tus oportunidades.
+              {profile.academicSetupComplete
+                ? "Actualiza lo que haya cambiado o importa una nueva captura. Nada se usa sin que puedas revisarlo."
+                : "Añade los cursos que llevas con sus créditos y notas. Revisarás todo antes de usarlo para personalizar tus oportunidades."}
             </p>
           </div>
           <Link href="/configurar" className="secondary-button shrink-0">Editar perfil general</Link>
@@ -116,7 +119,7 @@ export default function PanelPage() {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-sm font-bold text-canvas-foreground" id="entry-method-title">¿Cómo quieres añadirlos?</p>
-              <p className="mt-1 text-sm text-canvas-foreground/60">Puedes cambiar de método cuando quieras.</p>
+              <p className="mt-1 text-sm text-canvas-foreground/60">Elige una opción para mostrar sus campos. Ninguna está preseleccionada.</p>
             </div>
             <div className="group relative">
               <button
@@ -132,8 +135,8 @@ export default function PanelPage() {
                 role="tooltip"
                 className="pointer-events-none absolute right-0 top-full z-20 mt-2 w-72 translate-y-1 rounded-xl bg-sidebar px-4 py-3 text-sm leading-6 text-sidebar-foreground opacity-0 shadow-xl transition group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:translate-y-0 group-focus-within:opacity-100"
               >
-                Usa una captura legible que muestre los nombres de tus cursos. Si también
-                aparecen notas y créditos, el OCR intentará detectarlos para que los confirmes.
+                Usa una captura legible que muestre los nombres de tus cursos. El OCR propone
+                esos nombres; tú completas y confirmas las notas y los créditos antes de guardar.
               </div>
             </div>
           </div>
@@ -242,6 +245,18 @@ export default function PanelPage() {
           </section>
         )}
 
+        {entryMethod === null && courses.length > 0 && (
+          <section className="mt-6 rounded-2xl border border-border bg-white p-5 shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-bold text-canvas-foreground">{courses.length} cursos guardados</h2>
+                <p className="mt-1 text-sm text-canvas-foreground/60">Elige “Ingresar manualmente” para revisarlos o usa OCR para importar otra captura.</p>
+              </div>
+              <button type="button" onClick={() => setEntryMethod("manual")} className="secondary-button">Revisar cursos</button>
+            </div>
+          </section>
+        )}
+
         <section className="mt-8 grid gap-4 rounded-3xl bg-sidebar p-5 text-sidebar-foreground shadow-xl md:grid-cols-[1fr_auto] md:items-center md:p-6">
           <div>
             <p className="text-lg font-bold">Tu perfil ya puede empezar a trabajar por ti</p>
@@ -252,7 +267,7 @@ export default function PanelPage() {
             </p>
           </div>
           <button type="button" onClick={finishSetup} className="primary-button min-w-64">
-            Ver mis oportunidades
+            {profile.academicSetupComplete ? "Guardar y volver a oportunidades" : "Ver mis oportunidades"}
             <ArrowRightIcon width={18} height={18} />
           </button>
         </section>

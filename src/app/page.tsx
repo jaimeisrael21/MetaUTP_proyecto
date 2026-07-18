@@ -7,8 +7,10 @@ import {
   clearSession,
   getProfile,
   getSession,
+  saveProfile,
   useSession,
 } from "@/lib/store";
+import { DEMO_PROFILE } from "@/data/demo-profile";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { CompassIcon, GaugeIcon, ShieldIcon } from "@/components/icons";
 
@@ -139,7 +141,14 @@ export default function LoginPage() {
   }
 
   function enterDemo() {
-    enterProduct({ name: "Jaime Aramburu", email: "demo@metautp.app" });
+    const demoAccount = { name: DEMO_PROFILE.name, email: "demo@metautp.app" };
+    const previous = getSession();
+    if (previous.email !== demoAccount.email || !getProfile().onboarded) {
+      clearProfile();
+      saveProfile(DEMO_PROFILE);
+    }
+    login(demoAccount);
+    router.push("/oportunidades");
   }
 
   async function resetDemo() {
@@ -167,7 +176,7 @@ export default function LoginPage() {
           <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary font-bold text-primary-foreground">
             M
           </span>
-          <span className="text-xl font-bold tracking-tight">MetaUTP</span>
+          <span className="text-xl font-bold tracking-tight">Meta<span className="text-primary">UTP</span></span>
         </div>
 
         <div className="max-w-md">
@@ -210,7 +219,7 @@ export default function LoginPage() {
             <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-sm font-bold text-primary-foreground">
               M
             </span>
-            <span className="text-lg font-bold tracking-tight">MetaUTP</span>
+            <span className="text-lg font-bold tracking-tight">Meta<span className="text-primary">UTP</span></span>
           </div>
 
           <h2 className="text-3xl font-bold tracking-tight text-canvas-foreground">

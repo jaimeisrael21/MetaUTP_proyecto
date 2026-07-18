@@ -170,6 +170,43 @@ button:disabled {
     @apply flex w-full cursor-pointer items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-border-strong bg-white px-5 py-8 text-left transition hover:border-primary/45 hover:bg-primary-soft/40;
   }
 
+  .refinement-section {
+    @apply rounded-2xl border border-border bg-white p-5 shadow-sm;
+  }
+
+  .refinement-section > summary {
+    @apply cursor-pointer list-none text-base font-bold text-canvas-foreground;
+  }
+
+  .refinement-section > summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .refinement-section > summary::after {
+    content: "+";
+    @apply float-right text-xl leading-5 text-primary;
+  }
+
+  .refinement-section[open] > summary::after {
+    content: "−";
+  }
+
+  .check-option {
+    @apply flex cursor-pointer items-start gap-3 rounded-xl border border-border bg-canvas/50 px-3.5 py-3 text-sm font-semibold text-canvas-foreground/72 transition hover:border-primary/30 hover:bg-primary-soft/40;
+  }
+
+  .check-option input {
+    @apply mt-0.5 h-4 w-4 accent-primary;
+  }
+
+  .choice-chip {
+    @apply cursor-pointer rounded-full border border-border-strong bg-white px-3.5 py-2 text-[13px] font-bold text-canvas-foreground/65 transition hover:border-primary/35 hover:bg-primary-soft hover:text-primary;
+  }
+
+  .choice-chip--active {
+    @apply border-primary bg-primary-soft text-primary shadow-[0_6px_18px_rgba(197,31,70,0.08)];
+  }
+
   .metric-card {
     @apply relative flex min-h-36 flex-col overflow-hidden rounded-2xl border bg-white p-5 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-lg;
   }
@@ -223,13 +260,111 @@ button:disabled {
     @apply border-sidebar bg-sidebar text-sidebar-foreground shadow-[0_8px_20px_rgba(22,19,15,0.15)] hover:bg-sidebar hover:text-sidebar-foreground;
   }
 
+  .academic-period {
+    @apply inline-flex shrink-0 items-center gap-2 self-start rounded-full border border-border bg-white px-4 py-2.5 text-sm font-bold text-canvas-foreground shadow-sm;
+  }
+
+  .academic-period__dot {
+    @apply h-2.5 w-2.5 rounded-full bg-status-met shadow-[0_0_0_4px_rgba(7,139,69,0.12)];
+  }
+
+  .goal-guide {
+    @apply rounded-3xl border border-primary/20 bg-white p-4 shadow-[0_16px_42px_rgba(39,29,18,0.07)];
+    background-image: linear-gradient(135deg, rgba(253, 231, 237, 0.72), rgba(255, 255, 255, 0.96) 42%);
+  }
+
+  .goal-guide__intro {
+    @apply flex items-start gap-4;
+  }
+
+  .goal-guide__icon {
+    @apply flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary text-white shadow-[0_10px_24px_rgba(197,31,70,0.22)];
+  }
+
+  .goal-guide__result {
+    @apply mt-5 rounded-2xl border border-border bg-white/90 p-5 shadow-sm;
+  }
+
+  .guide-stat {
+    @apply flex items-baseline gap-1 rounded-xl bg-canvas-soft/70 px-3 py-2 text-xs font-semibold text-canvas-foreground/58;
+  }
+
+  .guide-stat strong {
+    @apply text-base text-canvas-foreground;
+  }
+
+  .catalog-summary {
+    @apply flex flex-wrap items-center gap-x-5 gap-y-2 rounded-2xl border border-border bg-white px-4 py-3 text-[13px] font-semibold text-canvas-foreground/60 shadow-sm;
+  }
+
+  .catalog-summary strong {
+    @apply mr-1 text-base;
+  }
+
+  .ranking-help {
+    @apply inline-flex cursor-help items-center gap-1.5 rounded-lg px-2 py-1.5 text-[13px] font-bold text-canvas-foreground/58 transition hover:bg-canvas-soft hover:text-primary;
+  }
+
+  .ranking-tooltip {
+    @apply pointer-events-none absolute right-0 top-full z-30 mt-2 hidden w-80 rounded-xl bg-sidebar px-4 py-3 text-sm font-medium leading-6 text-sidebar-foreground shadow-xl group-hover:block group-focus-within:block;
+  }
+
+  .catalog-toolbar {
+    @apply flex flex-col gap-3 rounded-2xl border border-border bg-white px-4 py-3.5 shadow-sm lg:flex-row lg:items-center lg:justify-between;
+  }
+
+  .opportunity-grid {
+    @apply grid gap-4 md:grid-cols-2 xl:grid-cols-4;
+  }
+
+  .catalog-pagination {
+    @apply mt-3 flex flex-wrap items-center justify-center gap-2 rounded-2xl border border-border bg-white/75 px-4 py-2 shadow-sm;
+  }
+
   .opportunity-card {
-    @apply flex min-h-full cursor-pointer flex-col gap-4 rounded-2xl border border-border bg-white p-5 shadow-[0_8px_26px_rgba(39,29,18,0.055)] transition duration-200 hover:-translate-y-1 hover:border-primary/30 hover:shadow-[0_18px_44px_rgba(39,29,18,0.12)];
+    @apply flex min-h-[238px] cursor-pointer flex-col rounded-2xl border border-border bg-white p-3 shadow-[0_8px_26px_rgba(39,29,18,0.055)] transition duration-200 hover:-translate-y-1 hover:border-primary/30 hover:shadow-[0_18px_44px_rgba(39,29,18,0.12)];
     animation: card-in 420ms both ease-out;
   }
 
+  .opportunity-card__top {
+    @apply flex min-h-7 items-center justify-between gap-2;
+  }
+
+  .opportunity-card__copy {
+    @apply mt-2.5 min-h-[52px];
+  }
+
+  .opportunity-card__evaluation {
+    @apply mt-2.5 flex min-h-[72px] flex-col gap-2 rounded-xl border border-border bg-canvas/45 p-2.5;
+  }
+
+  .opportunity-card__footer {
+    @apply mt-auto flex min-h-8 items-end justify-between gap-3 border-t border-border pt-2;
+  }
+
+  .match-pill {
+    @apply inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold;
+  }
+
+  .requirement-progress {
+    @apply h-2 overflow-hidden rounded-full bg-canvas-soft;
+  }
+
+  .requirement-progress > span {
+    @apply block h-full rounded-full bg-status-met transition-all duration-500;
+  }
+
+  .sidebar-brand__mark {
+    transition: transform 220ms ease, box-shadow 220ms ease;
+  }
+
+  .sidebar-brand:hover .sidebar-brand__mark {
+    transform: translateY(-2px) rotate(-3deg);
+    box-shadow: 0 14px 28px rgba(197, 31, 70, 0.34);
+  }
+
   .pagination-button {
-    @apply inline-flex h-11 min-w-11 cursor-pointer items-center justify-center rounded-xl border border-border-strong bg-white px-3 text-sm font-extrabold text-canvas-foreground/65 transition hover:-translate-y-0.5 hover:border-primary/35 hover:bg-primary-soft hover:text-primary disabled:pointer-events-none disabled:opacity-35;
+    @apply inline-flex h-10 min-w-10 cursor-pointer items-center justify-center rounded-xl border border-border-strong bg-white px-3 text-sm font-extrabold text-canvas-foreground/65 transition hover:-translate-y-0.5 hover:border-primary/35 hover:bg-primary-soft hover:text-primary disabled:pointer-events-none disabled:opacity-35;
   }
 
   .pagination-button--active {

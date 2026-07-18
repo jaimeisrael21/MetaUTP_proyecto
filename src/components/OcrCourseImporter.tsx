@@ -42,6 +42,7 @@ function extractCandidateNames(text: string): string[] {
       line
         .replace(/\b(?:lunes|martes|miércoles|miercoles|jueves|viernes|sábado|sabado|domingo)\b/gi, " ")
         .replace(/\b\d{1,2}:\d{2}\s*(?:a\.?\s*m\.?|p\.?\s*m\.?)?\b/gi, " ")
+        .replace(/\b1V\b/g, "IV")
         .replace(/[|•·]+/g, " ")
         .replace(/\s+/g, " ")
         .trim()
@@ -51,6 +52,7 @@ function extractCandidateNames(text: string): string[] {
       if (line.length < 4 || line.length > 80) return false;
       if (!/[a-záéíóúñ]{3}/i.test(line)) return false;
       if (/https?:\/\/|@/.test(line)) return false;
+      if (/\b(?:horario|r[eé]cord|malla)\b/i.test(line)) return false;
       if (IGNORED_LABELS.has(key)) return false;
       if (/^(?:\d[\d\s./-]*)$/.test(line)) return false;
       if (seen.has(key)) return false;
@@ -64,8 +66,8 @@ function candidatesFromText(text: string): Course[] {
   return extractCandidateNames(text).map((name) => ({
     id: crypto.randomUUID(),
     name,
-    credits: 3,
-    grade: 14,
+    credits: 0,
+    grade: 0,
   }));
 }
 
@@ -271,7 +273,7 @@ export function OcrCourseImporter({ onImport }: OcrCourseImporterProps) {
               <div>
                 <h3 className="text-sm font-semibold text-canvas-foreground">Cursos propuestos</h3>
                 <p className="mt-0.5 text-xs text-canvas-foreground/50">
-                  Corrige nombres, créditos y notas. El horario no sustituye tu récord académico.
+                  Corrige nombres y completa créditos y notas. Empiezan en 0 para no presentarlos como si el OCR los hubiera confirmado.
                 </p>
               </div>
               <span className="text-xs font-semibold text-primary">{candidates.length} detectados</span>

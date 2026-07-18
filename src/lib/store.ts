@@ -7,7 +7,7 @@
 // de la app llama a estas funciones, nunca a localStorage directamente.
 
 import { useCallback, useMemo, useSyncExternalStore } from "react";
-import { emptyProfile, type StudentProfile } from "@/data/types";
+import { emptyProfile, emptyProfileFacts, type StudentProfile } from "@/data/types";
 import { persistProfileForAuthenticatedUser } from "@/lib/supabase/profile-sync";
 
 const PROFILE_KEY = "metautp:profile";
@@ -46,7 +46,7 @@ function writeJson<T>(key: string, value: T) {
 }
 
 export function getProfile(): StudentProfile {
-  return readJson(PROFILE_KEY, emptyProfile);
+  return normalizeProfile(readJson(PROFILE_KEY, emptyProfile));
 }
 
 export function saveProfile(profile: StudentProfile) {
@@ -139,6 +139,16 @@ function parseSnapshot<T>(raw: string | null, fallback: T): T {
   }
 }
 
+function normalizeProfile(profile: StudentProfile): StudentProfile {
+  return {
+    ...emptyProfile,
+    ...profile,
+    preferredCategories: profile.preferredCategories ?? [],
+    courses: profile.courses ?? [],
+    facts: { ...emptyProfileFacts, ...(profile.facts ?? {}) },
+  };
+}
+
 /**
  * Hook de perfil del estudiante. Maneja hidratación de forma segura (SSR
  * siempre entrega emptyProfile; el valor real de localStorage llega después
@@ -147,7 +157,10 @@ function parseSnapshot<T>(raw: string | null, fallback: T): T {
 export function useProfile() {
   const rawProfile = useSyncExternalStore(subscribeProfile, profileSnapshot, serverSnapshot);
   const hydrated = useSyncExternalStore(subscribeHydration, clientHydrated, serverHydrated);
-  const profile = useMemo(() => parseSnapshot(rawProfile, emptyProfile), [rawProfile]);
+  const profile = useMemo(
+    () => normalizeProfile(parseSnapshot(rawProfile, emptyProfile)),
+    [rawProfile]
+  );
 
   const update = useCallback((patch: Partial<StudentProfile>) => {
     const next = { ...getProfile(), ...patch };

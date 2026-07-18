@@ -85,11 +85,11 @@ function SimuladorContent() {
           </Link>
         ) : null}
 
-        <p className="mt-4 text-sm font-semibold text-primary">Simulador</p>
+        <p className="mt-4 text-sm font-semibold text-primary">Plan de mejora</p>
         <h1 className="mt-1 text-2xl font-bold text-canvas-foreground md:text-3xl">
           {contextOpportunity
             ? `¿Qué necesitas para "${contextOpportunity.title}"?`
-            : "Simula tu promedio ponderado"}
+            : "Planifica cómo acercarte a tu meta"}
         </h1>
         <p className="mt-2 text-sm text-canvas-foreground/60">
           Cálculo con tu promedio actual ({profile.cumulativeGpa}) y tus {profile.approvedCredits}{" "}
@@ -176,7 +176,7 @@ function SimuladorContent() {
               <p className="text-sm text-canvas-foreground/60">
                 Aún no registraste cursos en{" "}
                 <Link href="/panel" className="font-semibold text-primary hover:underline">
-                  Panel del ciclo
+                  tus cursos y notas
                 </Link>
                 . Agrega tus cursos y notas ahí para ver la proyección aquí.
               </p>

@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { generateText } from "ai";
 import { z } from "zod";
 import { opportunities } from "@/data/opportunities";
-import type { StudentProfile } from "@/data/types";
+import { emptyProfileFacts, type StudentProfile } from "@/data/types";
 import { evaluateOpportunity } from "@/lib/matching";
 
 export const runtime = "nodejs";
@@ -14,6 +14,31 @@ const requestSchema = z.object({
     cycle: z.number().int().min(1).max(20),
     cumulativeGpa: z.number().min(0).max(20),
     approvedCredits: z.number().int().min(0).max(400),
+    facts: z.object({
+      academicRank: z.enum(["top_tenth", "top_fifth", "top_third", "none", "unknown"]),
+      failedLastPeriod: z.enum(["yes", "no", "unknown"]),
+      continuousStudent: z.enum(["yes", "no", "unknown"]),
+      enrolledCurrentTerm: z.enum(["yes", "no", "unknown"]),
+      age18Plus: z.enum(["yes", "no", "unknown"]),
+      disciplinaryIssues: z.enum(["yes", "no", "unknown"]),
+      outstandingDebt: z.enum(["yes", "no", "unknown"]),
+      studentStatus: z.enum(["active", "graduate", "unknown"]),
+      englishLevel: z.enum(["none", "A1", "A2", "B1", "B2", "C1", "C2", "unknown"]),
+      englishCertificate: z.enum(["yes", "no", "unknown"]),
+      competitiveSport: z.enum(["yes", "no", "unknown"]),
+      representsUtp: z.enum(["yes", "no", "unknown"]),
+      eliteAthleteCredential: z.enum(["yes", "no", "unknown"]),
+      culturalEnsemble: z.enum(["yes", "no", "unknown"]),
+      researchExperience: z.enum(["yes", "no", "unknown"]),
+      volunteering: z.enum(["yes", "no", "unknown"]),
+      workExperience: z.enum(["yes", "no", "unknown"]),
+      sensitiveConsent: z.enum(["yes", "not_now", "prefer_not"]),
+      financialNeed: z.enum(["yes", "no", "unknown"]),
+      lostEconomicGuardian: z.enum(["yes", "no", "unknown"]),
+      disabilityConadis: z.enum(["yes", "no", "unknown"]),
+      regionalBenefit: z.enum(["yes", "no", "unknown"]),
+      affiliations: z.array(z.enum(["coar", "innova", "idat", "zegel", "intercorp", "partner_school", "mother_of_god", "corporate_agreement"])).max(8),
+    }),
   }),
 });
 
@@ -146,7 +171,11 @@ export async function POST(request: NextRequest) {
     approvedCredits: parsed.data.profile.approvedCredits,
     courses: [],
     preferredCategories: [],
+    facts: { ...emptyProfileFacts, ...parsed.data.profile.facts },
+    goal: "undecided",
+    goalNote: "",
     onboarded: true,
+    profileRefined: true,
     academicSetupComplete: true,
   };
   const evaluation = evaluateOpportunity(opportunity, profile);

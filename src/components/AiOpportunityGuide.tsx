@@ -16,15 +16,15 @@ export function AiOpportunityGuide({
   profile,
 }: {
   opportunityId: string;
-  profile: Pick<StudentProfile, "cycle" | "cumulativeGpa" | "approvedCredits">;
+  profile: Pick<StudentProfile, "cycle" | "cumulativeGpa" | "approvedCredits" | "facts">;
 }) {
   const [result, setResult] = useState<GuideResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const cacheKey = useMemo(
     () =>
-      `metautp:ai:${opportunityId}:${profile.cycle}:${profile.cumulativeGpa}:${profile.approvedCredits}`,
-    [opportunityId, profile.cycle, profile.cumulativeGpa, profile.approvedCredits]
+      `metautp:ai:${opportunityId}:${profile.cycle}:${profile.cumulativeGpa}:${profile.approvedCredits}:${JSON.stringify(profile.facts)}`,
+    [opportunityId, profile]
   );
 
   useEffect(() => {

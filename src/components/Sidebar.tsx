@@ -5,9 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useSession } from "@/lib/store";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import {
-  BuildingIcon,
   CompassIcon,
-  GaugeIcon,
   LogOutIcon,
   SlidersIcon,
   UserIcon,
@@ -19,9 +17,7 @@ import {
 // nunca llegaba a verla. No reordenar esto de vuelta.
 const NAV_ITEMS = [
   { href: "/oportunidades", label: "Oportunidades", icon: CompassIcon },
-  { href: "/panel", label: "Mi ciclo", icon: GaugeIcon },
-  { href: "/simulador", label: "Simulador", icon: SlidersIcon },
-  { href: "/impacto", label: "Impacto UTP", icon: BuildingIcon },
+  { href: "/simulador", label: "Plan de mejora", icon: SlidersIcon },
 ];
 
 export function Sidebar() {
@@ -39,12 +35,12 @@ export function Sidebar() {
   return (
     <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col bg-sidebar text-sidebar-foreground md:flex">
       <div className="px-5 pb-5 pt-6">
-        <Link href="/oportunidades" className="flex items-center gap-3 rounded-xl px-2 py-1">
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground font-extrabold text-sm shadow-[0_10px_24px_rgba(197,31,70,0.25)]">
+        <Link href="/oportunidades" className="sidebar-brand group flex items-center gap-3 rounded-xl px-2 py-1">
+          <span className="sidebar-brand__mark flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground font-extrabold text-sm shadow-[0_10px_24px_rgba(197,31,70,0.25)]">
             M
           </span>
           <span>
-            <span className="block text-lg font-extrabold tracking-tight">MetaUTP</span>
+            <span className="block text-lg font-extrabold tracking-tight">Meta<span className="text-primary">UTP</span></span>
             <span className="mt-0.5 block text-[11px] font-semibold uppercase tracking-[0.13em] text-sidebar-muted">Tu mapa académico</span>
           </span>
         </Link>
@@ -73,17 +69,19 @@ export function Sidebar() {
 
       <div className="border-t border-white/10 p-3">
         <div className="flex items-center gap-3 rounded-2xl border border-white/8 bg-sidebar-soft/70 p-3">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-extrabold text-white">
-            {initials || <UserIcon width={17} height={17} />}
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="break-words text-[13px] font-bold leading-4 text-sidebar-foreground" title={session.name}>
-              {session.name || "Estudiante UTP"}
-            </p>
-            <p className="mt-0.5 truncate text-xs font-medium text-sidebar-muted" title={session.email}>
-              {session.email || "Cuenta personal"}
-            </p>
-          </div>
+          <Link href="/configurar" className="group flex min-w-0 flex-1 items-center gap-3" title="Editar perfil académico">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-extrabold text-white transition group-hover:scale-105">
+              {initials || <UserIcon width={17} height={17} />}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block break-words text-[13px] font-bold leading-4 text-sidebar-foreground" title={session.name}>
+                {session.name || "Estudiante UTP"}
+              </span>
+              <span className="mt-0.5 block truncate text-xs font-medium text-sidebar-muted" title={session.email}>
+                {session.email || "Cuenta personal"} · Perfil
+              </span>
+            </span>
+          </Link>
           <button
             type="button"
             onClick={async () => {

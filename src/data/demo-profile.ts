@@ -1,0 +1,43 @@
+import { emptyProfileFacts, type StudentProfile } from "./types";
+
+/** Perfil ficticio y coherente para una demostración inmediata del producto. */
+export const DEMO_PROFILE: StudentProfile = {
+  name: "Jaime Israel Aramburu",
+  career: "Ingeniería de Software",
+  cycle: 7,
+  cumulativeGpa: 15.5,
+  approvedCredits: 120,
+  courses: [
+    { id: "demo-1", name: "Calidad de Software", credits: 4, grade: 16 },
+    { id: "demo-2", name: "Diseño de Aplicaciones Web", credits: 4, grade: 17 },
+    { id: "demo-3", name: "Gestión de Proyectos", credits: 3, grade: 15 },
+    { id: "demo-4", name: "Inglés IV", credits: 2, grade: 16 },
+  ],
+  preferredCategories: [],
+  facts: {
+    ...emptyProfileFacts,
+    academicRank: "top_third",
+    failedLastPeriod: "no",
+    continuousStudent: "yes",
+    enrolledCurrentTerm: "yes",
+    age18Plus: "yes",
+    disciplinaryIssues: "no",
+    outstandingDebt: "no",
+    studentStatus: "active",
+    englishLevel: "B2",
+    englishCertificate: "yes",
+    competitiveSport: "no",
+    representsUtp: "no",
+    eliteAthleteCredential: "no",
+    culturalEnsemble: "no",
+    researchExperience: "no",
+    volunteering: "yes",
+    workExperience: "no",
+    sensitiveConsent: "prefer_not",
+  },
+  goal: "study_abroad",
+  goalNote: "Quiero una experiencia internacional compatible con mi perfil actual.",
+  onboarded: true,
+  profileRefined: true,
+  academicSetupComplete: true,
+};

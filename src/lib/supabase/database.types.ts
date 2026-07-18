@@ -46,36 +46,54 @@ export type Database = {
       }
       profiles: {
         Row: {
+          academic_setup_complete: boolean
           approved_credits: number
+          career: string | null
           created_at: string
           cumulative_gpa: number
           cycle: number
           full_name: string | null
+          goal: string
+          goal_note: string | null
           id: string
           onboarded: boolean
           preferred_categories: string[]
+          profile_facts: Json
+          profile_refined: boolean
           updated_at: string
         }
         Insert: {
+          academic_setup_complete?: boolean
           approved_credits?: number
+          career?: string | null
           created_at?: string
           cumulative_gpa?: number
           cycle?: number
           full_name?: string | null
+          goal?: string
+          goal_note?: string | null
           id: string
           onboarded?: boolean
           preferred_categories?: string[]
+          profile_facts?: Json
+          profile_refined?: boolean
           updated_at?: string
         }
         Update: {
+          academic_setup_complete?: boolean
           approved_credits?: number
+          career?: string | null
           created_at?: string
           cumulative_gpa?: number
           cycle?: number
           full_name?: string | null
+          goal?: string
+          goal_note?: string | null
           id?: string
           onboarded?: boolean
           preferred_categories?: string[]
+          profile_facts?: Json
+          profile_refined?: boolean
           updated_at?: string
         }
         Relationships: []
@@ -236,4 +254,3 @@ export const Constants = {
     Enums: {},
   },
 } as const
-

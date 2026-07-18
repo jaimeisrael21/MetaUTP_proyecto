@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ArrowRightIcon, ChevronLeftIcon, ShieldIcon } from "@/components/icons";
 import { SetupProgress } from "@/components/SetupProgress";
+import { ProfileRefinementFields } from "@/components/ProfileRefinementFields";
+import { emptyProfileFacts, type ProfileFacts } from "@/data/types";
 import { useProfile, useSession } from "@/lib/store";
 
 export default function ConfigurarPage() {
@@ -15,6 +17,7 @@ export default function ConfigurarPage() {
   const [cycle, setCycle] = useState(1);
   const [gpa, setGpa] = useState("");
   const [credits, setCredits] = useState("");
+  const [facts, setFacts] = useState<ProfileFacts>(emptyProfileFacts);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -29,9 +32,10 @@ export default function ConfigurarPage() {
       setCycle(profile.cycle || 1);
       setGpa(profile.cumulativeGpa ? String(profile.cumulativeGpa) : "");
       setCredits(profile.approvedCredits ? String(profile.approvedCredits) : "");
+      setFacts({ ...emptyProfileFacts, ...(profile.facts ?? {}) });
     });
     return () => window.cancelAnimationFrame(frame);
-  }, [profileHydrated, profile.career, profile.cycle, profile.cumulativeGpa, profile.approvedCredits]);
+  }, [profileHydrated, profile.career, profile.cycle, profile.cumulativeGpa, profile.approvedCredits, profile.facts]);
 
   function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -53,50 +57,60 @@ export default function ConfigurarPage() {
     }
 
     setError("");
+    const returningToCatalog = profile.academicSetupComplete;
     update({
       name: session.name || profile.name,
       career: cleanCareer,
       cycle,
       cumulativeGpa: Math.round(gpaNumber * 100) / 100,
       approvedCredits: creditsNumber,
+      facts,
       onboarded: true,
-      academicSetupComplete: false,
+      profileRefined: true,
+      academicSetupComplete: returningToCatalog,
     });
-    router.push("/panel?setup=1");
+    router.push(returningToCatalog ? "/oportunidades" : "/panel?setup=1");
   }
 
   const firstName = (session.name || profile.name || "").split(" ")[0];
+  const editingExistingProfile = profile.academicSetupComplete;
+  const backHref = editingExistingProfile ? "/oportunidades" : "/";
 
   return (
     <div className="min-h-screen bg-canvas px-5 py-8 md:px-10 md:py-12">
       <div className="mx-auto max-w-5xl">
         <div className="flex items-center justify-between gap-4">
-          <Link href="/" className="brand-mark">
+          <Link href={backHref} className="brand-mark">
             <span className="brand-mark__icon">M</span>
-            <span>MetaUTP</span>
+            <span>Meta<span className="text-primary">UTP</span></span>
           </Link>
           <Link
-            href="/"
+            href={backHref}
             className="inline-flex cursor-pointer items-center gap-1.5 text-sm font-semibold text-canvas-foreground/65 transition hover:text-primary"
           >
             <ChevronLeftIcon width={17} height={17} />
-            Volver
+            {editingExistingProfile ? "Volver a oportunidades" : "Volver"}
           </Link>
         </div>
 
-        <div className="mt-8">
-          <SetupProgress current={1} />
-        </div>
+        {!editingExistingProfile && (
+          <div className="mt-8">
+            <SetupProgress current={1} />
+          </div>
+        )}
 
-        <div className="mt-8 grid gap-8 lg:grid-cols-[0.82fr_1.18fr] lg:gap-14">
+        <div className={`${editingExistingProfile ? "mt-6" : "mt-8"} grid gap-8 lg:grid-cols-[0.82fr_1.18fr] lg:gap-14`}>
           <section className="pt-2 page-enter">
             <p className="eyebrow">Tu punto de partida</p>
             <h1 className="mt-3 text-3xl font-bold leading-tight text-canvas-foreground md:text-4xl">
-              {firstName ? `${firstName}, cuéntanos` : "Cuéntanos"} dónde estás hoy.
+              {editingExistingProfile
+                ? `${firstName || "Estudiante"}, actualiza tu perfil académico.`
+                : `${firstName ? `${firstName}, cuéntanos` : "Cuéntanos"} dónde estás hoy.`}
             </h1>
             <p className="mt-4 max-w-lg text-base leading-7 text-canvas-foreground/70">
-              Estos datos nos permiten comparar tu situación con requisitos documentados. En
-              el siguiente paso registrarás tus cursos manualmente o mediante OCR.
+              {editingExistingProfile
+                ? "Corrige solo lo que haya cambiado. El catálogo volverá a ordenarse con tus datos actualizados."
+                : "Primero registramos lo indispensable. Después puedes añadir datos opcionales para que una beca sensible o especializada nunca aparezca sin contexto."}
             </p>
 
             <div className="mt-7 rounded-2xl border border-status-met/25 bg-status-met-soft p-5">
@@ -176,14 +190,23 @@ export default function ConfigurarPage() {
               </div>
             </div>
 
+            <ProfileRefinementFields facts={facts} onChange={setFacts} />
+
             {error && <p role="alert" className="mt-5 rounded-xl bg-status-unmet-soft px-4 py-3 text-sm font-semibold text-status-unmet">{error}</p>}
 
             <button type="submit" className="primary-button mt-7 w-full">
-              Continuar con mis cursos
+              {profile.academicSetupComplete ? "Guardar cambios" : "Guardar y continuar con mis cursos"}
               <ArrowRightIcon width={18} height={18} />
             </button>
+            {editingExistingProfile && (
+              <Link href="/panel" className="secondary-button mt-3 w-full">
+                Editar cursos, créditos y notas
+              </Link>
+            )}
             <p className="mt-3 text-center text-[13px] leading-5 text-canvas-foreground/55">
-              Paso siguiente: cursos, notas y créditos del ciclo actual.
+              {editingExistingProfile
+                ? "Volverás al catálogo después de guardar. Tus datos opcionales siguen bajo tu control."
+                : "Paso siguiente: cursos, notas y créditos del ciclo actual."}
             </p>
           </form>
         </div>

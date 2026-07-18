@@ -59,6 +59,90 @@ export interface Course {
   grade: number; // 0-20
 }
 
+export type TriState = "yes" | "no" | "unknown";
+
+export type AcademicRank =
+  | "top_tenth"
+  | "top_fifth"
+  | "top_third"
+  | "none"
+  | "unknown";
+
+export type EnglishLevel = "none" | "A1" | "A2" | "B1" | "B2" | "C1" | "C2" | "unknown";
+
+export type StudentStatus = "active" | "graduate" | "unknown";
+
+export type SpecialAffiliation =
+  | "coar"
+  | "innova"
+  | "idat"
+  | "zegel"
+  | "intercorp"
+  | "partner_school"
+  | "mother_of_god"
+  | "corporate_agreement";
+
+export type StudentGoal =
+  | "scholarship"
+  | "study_abroad"
+  | "employability"
+  | "english"
+  | "research"
+  | "custom"
+  | "undecided";
+
+export interface ProfileFacts {
+  academicRank: AcademicRank;
+  failedLastPeriod: TriState;
+  continuousStudent: TriState;
+  enrolledCurrentTerm: TriState;
+  age18Plus: TriState;
+  disciplinaryIssues: TriState;
+  outstandingDebt: TriState;
+  studentStatus: StudentStatus;
+  englishLevel: EnglishLevel;
+  englishCertificate: TriState;
+  competitiveSport: TriState;
+  representsUtp: TriState;
+  eliteAthleteCredential: TriState;
+  culturalEnsemble: TriState;
+  researchExperience: TriState;
+  volunteering: TriState;
+  workExperience: TriState;
+  sensitiveConsent: "yes" | "not_now" | "prefer_not";
+  financialNeed: TriState;
+  lostEconomicGuardian: TriState;
+  disabilityConadis: TriState;
+  regionalBenefit: TriState;
+  affiliations: SpecialAffiliation[];
+}
+
+export const emptyProfileFacts: ProfileFacts = {
+  academicRank: "unknown",
+  failedLastPeriod: "unknown",
+  continuousStudent: "unknown",
+  enrolledCurrentTerm: "unknown",
+  age18Plus: "unknown",
+  disciplinaryIssues: "unknown",
+  outstandingDebt: "unknown",
+  studentStatus: "unknown",
+  englishLevel: "unknown",
+  englishCertificate: "unknown",
+  competitiveSport: "unknown",
+  representsUtp: "unknown",
+  eliteAthleteCredential: "unknown",
+  culturalEnsemble: "unknown",
+  researchExperience: "unknown",
+  volunteering: "unknown",
+  workExperience: "unknown",
+  sensitiveConsent: "not_now",
+  financialNeed: "unknown",
+  lostEconomicGuardian: "unknown",
+  disabilityConadis: "unknown",
+  regionalBenefit: "unknown",
+  affiliations: [],
+};
+
 export interface StudentProfile {
   name: string;
   career: string;
@@ -67,7 +151,11 @@ export interface StudentProfile {
   approvedCredits: number; // créditos aprobados acumulados
   courses: Course[]; // cursos del ciclo actual, para los simuladores
   preferredCategories: OpportunityCategory[]; // intereses opcionales usados solo para jerarquizar
+  facts: ProfileFacts; // datos opcionales declarados de forma respetuosa por el estudiante
+  goal: StudentGoal; // meta principal que orienta el orden del catálogo y a la guía de IA
+  goalNote: string; // texto libre opcional, nunca modifica el perfil sin confirmación
   onboarded: boolean; // true tras completar los datos generales del perfil
+  profileRefined: boolean; // true cuando revisó (o decidió omitir) el bloque opcional
   academicSetupComplete: boolean; // true tras revisar la carga manual/OCR de cursos
 }
 
@@ -79,6 +167,10 @@ export const emptyProfile: StudentProfile = {
   approvedCredits: 0,
   courses: [],
   preferredCategories: [],
+  facts: emptyProfileFacts,
+  goal: "undecided",
+  goalNote: "",
   onboarded: false,
+  profileRefined: false,
   academicSetupComplete: false,
 };

@@ -8,6 +8,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { AiOpportunityGuide } from "@/components/AiOpportunityGuide";
 import { opportunities } from "@/data/opportunities";
 import { evaluateOpportunity } from "@/lib/matching";
+import type { OpportunityMatchState } from "@/lib/matching";
 import { useProfile, useSession } from "@/lib/store";
 import {
   AlertIcon,
@@ -24,6 +25,16 @@ function formatDate(iso: string) {
     year: "numeric",
   });
 }
+
+const MATCH_LABEL: Record<OpportunityMatchState, { label: string; style: string }> = {
+  recommended: { label: "Coincide contigo", style: "bg-status-met-soft text-status-met" },
+  close: { label: "Estás cerca", style: "bg-status-close-soft text-status-close" },
+  needs_data: { label: "Falta un dato esencial", style: "bg-status-info-soft text-status-info" },
+  special_condition: { label: "Solo si esta condición aplica", style: "bg-[#f1e8ff] text-[#6f2ba8]" },
+  official_validation: { label: "Requiere validación oficial", style: "bg-status-pending-soft text-status-pending" },
+  not_applicable: { label: "No aplica por ahora", style: "bg-status-unmet-soft text-status-unmet" },
+  general_catalog: { label: "Catálogo general", style: "bg-canvas-soft text-canvas-foreground/62" },
+};
 
 export default function OportunidadDetailPage() {
   const params = useParams<{ id: string }>();
@@ -44,6 +55,9 @@ export default function OportunidadDetailPage() {
 
   const evaluation = evaluateOpportunity(opportunity, profile);
   const informational = opportunity.actionability === "informational";
+  const match = MATCH_LABEL[evaluation.matchState];
+  const totalSignals = evaluation.comparisonTotal;
+  const confirmedSignals = evaluation.confirmedCount;
   const hasCloseNumeric = evaluation.evaluations.some(
     (item) =>
       item.status === "close" &&
@@ -85,14 +99,10 @@ export default function OportunidadDetailPage() {
             ) : (
               <>
                 <span className="text-4xl font-extrabold text-canvas-foreground">
-                  {evaluation.measurableCount > 0
-                    ? `${evaluation.metCount}/${evaluation.measurableCount}`
-                    : "Revisión"}
+                  {confirmedSignals}/{totalSignals}
                 </span>
                 <span className="mt-1 text-sm leading-5 text-canvas-foreground/60">
-                  {evaluation.measurableCount > 0
-                    ? "requisitos medibles cumplidos"
-                    : "sin requisitos numéricos"}
+                  señales confirmadas con tus datos
                 </span>
               </>
             )}
@@ -100,7 +110,7 @@ export default function OportunidadDetailPage() {
         </div>
 
         <div className="mt-6 flex flex-wrap items-center gap-3">
-          {!informational && <StatusBadge status={evaluation.dominantStatus} />}
+          {!informational && <span className={`rounded-full px-3 py-1.5 text-sm font-bold ${match.style}`}>{match.label}</span>}
           <span className="text-sm font-medium text-canvas-foreground/60">
             {evaluation.window.label}
           </span>
@@ -133,13 +143,43 @@ export default function OportunidadDetailPage() {
           </Link>
         )}
 
+        {!informational && evaluation.gateEvaluations.length > 0 && (
+          <section className="mt-8">
+            <div className="flex flex-wrap items-end justify-between gap-2">
+              <h2 className="text-xl font-bold text-canvas-foreground">Condiciones esenciales de tu perfil</h2>
+              <Link href="/configurar" className="text-sm font-bold text-primary hover:underline">Editar datos</Link>
+            </div>
+            <div className="mt-3 grid gap-3 md:grid-cols-2">
+              {evaluation.gateEvaluations.map(({ gate, result }) => (
+                <div key={gate.id} className="rounded-2xl border border-border bg-white p-5 shadow-sm">
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="text-sm font-bold leading-6 text-canvas-foreground">{gate.label}</p>
+                    <StatusBadge
+                      status={result === "met" ? "met" : result === "unmet" ? "unmet" : "needs_info"}
+                      label={result === "met" ? "Confirmado" : result === "unmet" ? "No coincide" : "Falta dato"}
+                      size="sm"
+                    />
+                  </div>
+                  <p className="mt-2 text-sm leading-6 text-canvas-foreground/62">
+                    {result === "met"
+                      ? "Tu respuesta coincide con esta condición. La entidad aún puede solicitar sustento."
+                      : result === "unmet"
+                        ? "Con lo que declaraste, esta oportunidad no corresponde por ahora."
+                        : "No asumimos que cumples esta condición: complétala solo si deseas considerarla."}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
         <section className="mt-8">
           <div className="flex flex-wrap items-end justify-between gap-2">
             <h2 className="text-xl font-bold text-canvas-foreground">
               Requisitos, uno por uno
             </h2>
             <span className="text-sm font-medium text-canvas-foreground/50">
-              {evaluation.totalCount} requisitos registrados
+              {evaluation.totalCount} requisitos documentados
             </span>
           </div>
           <div className="mt-3 space-y-3">
@@ -176,6 +216,7 @@ export default function OportunidadDetailPage() {
               cycle: profile.cycle,
               cumulativeGpa: profile.cumulativeGpa,
               approvedCredits: profile.approvedCredits,
+              facts: profile.facts,
             }}
           />
         )}
