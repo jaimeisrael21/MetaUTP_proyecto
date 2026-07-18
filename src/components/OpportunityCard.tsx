@@ -22,13 +22,13 @@ const MATCH_STATE: Record<
   OpportunityMatchState,
   { label: string; style: string; icon: typeof CheckCircleIcon }
 > = {
-  recommended: { label: "Coincide contigo", style: "bg-status-met-soft text-status-met", icon: CheckCircleIcon },
-  close: { label: "Estás cerca", style: "bg-status-close-soft text-status-close", icon: ClockIcon },
-  needs_data: { label: "Falta un dato", style: "bg-status-info-soft text-status-info", icon: PencilIcon },
-  special_condition: { label: "Solo si aplica", style: "bg-[#f1e8ff] text-[#6f2ba8]", icon: HelpCircleIcon },
-  official_validation: { label: "Validación oficial", style: "bg-status-pending-soft text-status-pending", icon: HelpCircleIcon },
-  not_applicable: { label: "No aplica por ahora", style: "bg-status-unmet-soft text-status-unmet", icon: XCircleIcon },
-  general_catalog: { label: "Catálogo general", style: "bg-canvas-soft text-canvas-foreground/62", icon: HelpCircleIcon },
+  recommended: { label: "Coincide contigo", style: "match-pill--met bg-status-met-soft text-status-met", icon: CheckCircleIcon },
+  close: { label: "Estás cerca", style: "match-pill--close bg-status-close-soft text-status-close", icon: ClockIcon },
+  needs_data: { label: "Falta un dato", style: "match-pill--info bg-status-info-soft text-status-info", icon: PencilIcon },
+  special_condition: { label: "Solo si aplica", style: "match-pill--special bg-[#f1e8ff] text-[#6f2ba8]", icon: HelpCircleIcon },
+  official_validation: { label: "Falta por confirmar", style: "match-pill--official bg-status-pending-soft text-status-pending", icon: HelpCircleIcon },
+  not_applicable: { label: "No aplica por ahora", style: "match-pill--unmet bg-status-unmet-soft text-status-unmet", icon: XCircleIcon },
+  general_catalog: { label: "Catálogo general", style: "match-pill--general bg-canvas-soft text-canvas-foreground/62", icon: HelpCircleIcon },
 };
 
 export function OpportunityCard({
@@ -63,7 +63,9 @@ export function OpportunityCard({
         </span>
         {match && MatchIcon && (
           <span className={`match-pill ${match.style}`}>
-            <MatchIcon width={17} height={17} strokeWidth={2.5} />
+            <span className="match-pill__icon" aria-hidden="true">
+              <MatchIcon width={16} height={16} strokeWidth={2.7} />
+            </span>
             {match.label}
           </span>
         )}

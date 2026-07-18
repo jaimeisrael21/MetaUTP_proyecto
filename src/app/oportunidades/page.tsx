@@ -4,8 +4,14 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/AppShell";
-import { GoalGuide } from "@/components/GoalGuide";
-import { ChevronLeftIcon, CompassIcon, HelpCircleIcon } from "@/components/icons";
+import {
+  CheckCircleIcon,
+  ChevronLeftIcon,
+  ClockIcon,
+  CompassIcon,
+  HelpCircleIcon,
+  PencilIcon,
+} from "@/components/icons";
 import { OpportunityCard } from "@/components/OpportunityCard";
 import { CURRENT_ACADEMIC_PERIOD } from "@/data/academic-period";
 import { opportunities } from "@/data/opportunities";
@@ -25,10 +31,9 @@ const PAGE_SIZE = 4;
 export default function OportunidadesPage() {
   const router = useRouter();
   const { session, hydrated: sessionHydrated } = useSession();
-  const { profile, update, hydrated: profileHydrated } = useProfile();
+  const { profile, hydrated: profileHydrated } = useProfile();
   const [category, setCategory] = useState<(typeof CATEGORIES)[number]>("Todas");
   const [page, setPage] = useState(1);
-  const [aiPriorityIds, setAiPriorityIds] = useState<string[]>([]);
 
   useEffect(() => {
     if (!sessionHydrated || !profileHydrated) return;
@@ -59,21 +64,12 @@ export default function OportunidadesPage() {
   );
 
   const orderedOpportunities = useMemo(() => {
-    const aiOrder = new Map(aiPriorityIds.map((id, index) => [id, index]));
-    const aiBoost = (id: string, state: (typeof evaluatedAll)[number]["evaluation"]["matchState"]) => {
-      if (state === "not_applicable" || state === "general_catalog" || state === "special_condition") return 0;
-      const index = aiOrder.get(id);
-      return index === undefined ? 0 : Math.max(4, 34 - index * 3);
-    };
-
     return evaluatedAll
       .filter(({ opportunity }) => category === "Todas" || opportunity.category === category)
       .sort((first, second) => {
-        const firstScore = first.ranking.score + aiBoost(first.opportunity.id, first.evaluation.matchState);
-        const secondScore = second.ranking.score + aiBoost(second.opportunity.id, second.evaluation.matchState);
-        return secondScore - firstScore || first.catalogIndex - second.catalogIndex;
+        return second.ranking.score - first.ranking.score || first.catalogIndex - second.catalogIndex;
       });
-  }, [category, evaluatedAll, aiPriorityIds]);
+  }, [category, evaluatedAll]);
 
   const totalPages = Math.max(1, Math.ceil(orderedOpportunities.length / PAGE_SIZE));
   const pageItems = orderedOpportunities.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -95,7 +91,7 @@ export default function OportunidadesPage() {
 
   if (!profileHydrated || !profile.onboarded || !profile.academicSetupComplete) return null;
 
-  const firstName = (profile.name || session.name || "Estudiante").split(" ")[0];
+  const displayName = (profile.name || session.name || "Estudiante").trim();
 
   return (
     <AppShell>
@@ -103,7 +99,7 @@ export default function OportunidadesPage() {
         <header className="page-enter flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight text-canvas-foreground md:text-4xl">
-              Oportunidades para {firstName}
+              Oportunidades para {displayName}
             </h1>
             <p className="mt-2 text-sm font-medium text-canvas-foreground/62">
               Basadas en tu perfil académico · <Link href="/configurar" className="font-bold text-primary hover:underline">Editar datos</Link>
@@ -118,30 +114,50 @@ export default function OportunidadesPage() {
           </span>
         </header>
 
-        <div className="mt-5 page-enter">
-          <GoalGuide
-            profile={profile}
-            onUpdateProfile={update}
-            onPriorities={(ids) => {
-              setAiPriorityIds(ids);
-              setPage(1);
-            }}
-          />
-        </div>
-
-        <section className="catalog-summary mt-5" aria-label="Resumen de coincidencias">
-          <span><strong className="text-status-met">{summary.recommended}</strong> coinciden</span>
-          <span><strong className="text-status-close">{summary.close}</strong> cercanas</span>
-          <span><strong className="text-status-info">{summary.needsData}</strong> requieren datos</span>
-          <span><strong className="text-status-pending">{summary.official}</strong> validación oficial</span>
-          <span className="group relative ml-auto">
-            <button type="button" className="ranking-help" aria-describedby="ranking-tooltip">
-              <HelpCircleIcon width={16} height={16} /> ¿Cómo ordenamos esto?
-            </button>
-            <span id="ranking-tooltip" role="tooltip" className="ranking-tooltip">
-              Primero descartamos incompatibilidades esenciales; después ordenamos por requisitos académicos, datos pendientes, vigencia, urgencia y tu meta. Nunca usamos la IA para aprobar una beca.
+        <section className="summary-grid mt-6" aria-label="Resumen de oportunidades según tu perfil">
+          <article className="metric-card metric-card--met">
+            <span className="metric-card__icon" aria-hidden="true">
+              <CheckCircleIcon width={27} height={27} strokeWidth={2.4} />
             </span>
-          </span>
+            <div>
+              <strong className="metric-card__value">{summary.recommended}</strong>
+              <h2 className="metric-card__label">Coinciden contigo</h2>
+              <p className="metric-card__help">Sin bloqueos detectados con tus datos.</p>
+            </div>
+          </article>
+
+          <article className="metric-card metric-card--close">
+            <span className="metric-card__icon" aria-hidden="true">
+              <ClockIcon width={27} height={27} strokeWidth={2.4} />
+            </span>
+            <div>
+              <strong className="metric-card__value">{summary.close}</strong>
+              <h2 className="metric-card__label">Estás cerca</h2>
+              <p className="metric-card__help">Te falta poco para un requisito medible.</p>
+            </div>
+          </article>
+
+          <article className="metric-card metric-card--info">
+            <span className="metric-card__icon" aria-hidden="true">
+              <PencilIcon width={27} height={27} strokeWidth={2.4} />
+            </span>
+            <div>
+              <strong className="metric-card__value">{summary.needsData}</strong>
+              <h2 className="metric-card__label">Completa un dato</h2>
+              <p className="metric-card__help">Podemos comparar mejor cuando lo registres.</p>
+            </div>
+          </article>
+
+          <article className="metric-card metric-card--official">
+            <span className="metric-card__icon" aria-hidden="true">
+              <HelpCircleIcon width={27} height={27} strokeWidth={2.4} />
+            </span>
+            <div>
+              <strong className="metric-card__value">{summary.official}</strong>
+              <h2 className="metric-card__label">Falta por confirmar</h2>
+              <p className="metric-card__help">La validación depende de la entidad responsable.</p>
+            </div>
+          </article>
         </section>
 
         <section className="mt-5" aria-labelledby="catalog-title">
