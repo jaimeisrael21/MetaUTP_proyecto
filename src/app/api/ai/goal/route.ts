@@ -115,6 +115,7 @@ function safeFollowUpQuestions(profile: StudentProfile, questions: string[]) {
       /ingl[eé]s|idioma|certific/i.test(question)
     ) return false;
     if (profile.facts.competitiveSport !== "unknown" && /deport/i.test(question)) return false;
+    if (profile.facts.failedLastPeriod !== "unknown" && /desaprobad|reprobad/i.test(question)) return false;
     return true;
   }).slice(0, 2);
 }
@@ -231,9 +232,10 @@ export async function POST(request: NextRequest) {
       output.followUpQuestions ?? output.preguntas_faltantes ?? []
     );
     const suggestedNextAction = output.nextAction ?? output.accion_siguiente ?? fallback.nextAction;
-    const nextAction = profile.facts.age18Plus !== "unknown" && /edad|18 a[nñ]os/i.test(suggestedNextAction)
-      ? fallback.nextAction
-      : suggestedNextAction;
+    const repeatsKnownData =
+      (profile.facts.age18Plus !== "unknown" && /edad|18 a[nñ]os/i.test(suggestedNextAction)) ||
+      (profile.facts.failedLastPeriod !== "unknown" && /desaprobad|reprobad/i.test(suggestedNextAction));
+    const nextAction = repeatsKnownData ? fallback.nextAction : suggestedNextAction;
 
     return Response.json({
       summary,
