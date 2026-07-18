@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { StudentProfile } from "@/data/types";
 import { SparklesIcon } from "./icons";
 
@@ -21,6 +21,25 @@ export function AiOpportunityGuide({
   const [result, setResult] = useState<GuideResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const cacheKey = useMemo(
+    () =>
+      `metautp:ai:${opportunityId}:${profile.cycle}:${profile.cumulativeGpa}:${profile.approvedCredits}`,
+    [opportunityId, profile.cycle, profile.cumulativeGpa, profile.approvedCredits]
+  );
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      try {
+        const cached = window.sessionStorage.getItem(cacheKey);
+        if (!cached) return;
+        const parsed = JSON.parse(cached) as GuideResult;
+        if (parsed.mode === "ai" && Array.isArray(parsed.nextSteps)) setResult(parsed);
+      } catch {
+        // Una caché inválida no interrumpe la explicación en vivo.
+      }
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [cacheKey]);
 
   async function explain() {
     setLoading(true);
@@ -36,6 +55,7 @@ export function AiOpportunityGuide({
         throw new Error("error" in data ? data.error : "No se pudo generar la explicación.");
       }
       setResult(data);
+      if (data.mode === "ai") window.sessionStorage.setItem(cacheKey, JSON.stringify(data));
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "No se pudo generar la explicación.");
     } finally {
@@ -44,51 +64,53 @@ export function AiOpportunityGuide({
   }
 
   return (
-    <section className="mt-6 rounded-2xl border border-primary/20 bg-primary-soft p-5">
+    <section className="mt-8 overflow-hidden rounded-3xl border border-primary/25 bg-primary-soft p-5 shadow-[0_16px_44px_rgba(197,31,70,0.08)] md:p-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <div className="flex items-center gap-2 text-primary">
-            <SparklesIcon width={18} height={18} />
-            <h2 className="text-sm font-bold">Explicación personalizada</h2>
+          <div className="flex items-center gap-3 text-primary">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-white shadow-[0_8px_20px_rgba(197,31,70,0.2)]">
+              <SparklesIcon width={18} height={18} />
+            </span>
+            <h2 className="text-lg font-bold">Explicación personalizada con IA</h2>
           </div>
-          <p className="mt-1 max-w-xl text-xs leading-relaxed text-canvas-foreground/65">
-            La IA traduce el resultado a lenguaje sencillo. El cumplimiento fue calculado
-            antes por reglas verificables y no puede ser cambiado por el modelo.
+          <p className="mt-2 max-w-xl text-sm leading-6 text-canvas-foreground/68">
+            Convierte tus resultados en una explicación clara y próximos pasos concretos.
+            Los requisitos numéricos se calculan antes con reglas verificables.
           </p>
         </div>
         <button
           type="button"
           onClick={explain}
           disabled={loading}
-          className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground disabled:cursor-wait disabled:opacity-60"
+          className="primary-button shrink-0 disabled:cursor-wait disabled:opacity-60"
         >
           <SparklesIcon width={16} height={16} />
           {loading ? "Analizando…" : result ? "Actualizar explicación" : "Explicarme esto"}
         </button>
       </div>
 
-      {error && <p className="mt-4 text-sm font-medium text-status-unmet">{error}</p>}
+      {error && <p className="mt-4 rounded-xl bg-status-unmet-soft px-4 py-3 text-sm font-semibold text-status-unmet">{error}</p>}
 
       {result && (
-        <div className="mt-5 rounded-xl bg-white p-4" aria-live="polite">
+        <div className="mt-5 rounded-2xl border border-white/80 bg-white p-5 shadow-sm" aria-live="polite">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="text-sm font-bold text-canvas-foreground">Qué significa para ti</p>
-            <span className="rounded-full bg-canvas-soft px-2.5 py-1 text-[11px] font-semibold text-canvas-foreground/60">
+            <p className="text-base font-bold text-canvas-foreground">Qué significa para ti</p>
+            <span className={`rounded-full px-3 py-1.5 text-[13px] font-bold ${result.mode === "ai" ? "bg-status-met-soft text-status-met" : "bg-status-pending-soft text-status-pending"}`}>
               {result.mode === "ai" ? "IA de apoyo" : "Respuesta segura por reglas"}
             </span>
           </div>
-          <p className="mt-2 text-sm leading-relaxed text-canvas-foreground/75">{result.summary}</p>
-          <ol className="mt-3 space-y-2">
+          <p className="mt-3 text-base leading-7 text-canvas-foreground/78">{result.summary}</p>
+          <ol className="mt-4 space-y-3">
             {result.nextSteps.map((step, index) => (
-              <li key={`${step}-${index}`} className="flex gap-2 text-sm text-canvas-foreground/70">
-                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-sidebar text-[11px] font-bold text-sidebar-foreground">
+              <li key={`${step}-${index}`} className="flex gap-3 text-sm leading-6 text-canvas-foreground/72">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-sidebar text-xs font-bold text-sidebar-foreground">
                   {index + 1}
                 </span>
                 <span>{step}</span>
               </li>
             ))}
           </ol>
-          <p className="mt-4 border-t border-border pt-3 text-xs leading-relaxed text-canvas-foreground/50">
+          <p className="mt-5 border-t border-border pt-4 text-[13px] leading-5 text-canvas-foreground/55">
             {result.caveat}
           </p>
         </div>

@@ -16,10 +16,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   return (
-    <div className="flex min-h-screen w-full bg-canvas text-canvas-foreground">
+    <div className="flex min-h-screen w-full bg-transparent text-canvas-foreground">
       <Sidebar />
       <div className="flex min-h-screen flex-1 flex-col">
-        <header className="flex items-center justify-between border-b border-border bg-canvas px-4 py-3 md:hidden">
+        <header className="flex items-center justify-between border-b border-border bg-white/85 px-4 py-3 backdrop-blur md:hidden">
           <Link href="/oportunidades" className="flex items-center gap-2">
             <span className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-primary-foreground font-bold text-xs">
               M

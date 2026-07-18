@@ -19,7 +19,7 @@ import {
 // nunca llegaba a verla. No reordenar esto de vuelta.
 const NAV_ITEMS = [
   { href: "/oportunidades", label: "Oportunidades", icon: CompassIcon },
-  { href: "/panel", label: "Panel del ciclo", icon: GaugeIcon },
+  { href: "/panel", label: "Mi ciclo", icon: GaugeIcon },
   { href: "/simulador", label: "Simulador", icon: SlidersIcon },
   { href: "/impacto", label: "Impacto UTP", icon: BuildingIcon },
 ];
@@ -28,19 +28,29 @@ export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { session, logout } = useSession();
+  const initials = (session.name || "Estudiante")
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
 
   return (
-    <aside className="hidden md:flex w-64 shrink-0 flex-col bg-sidebar text-sidebar-foreground">
-      <div className="px-6 py-6">
-        <Link href="/oportunidades" className="flex items-center gap-2">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold text-sm">
+    <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col bg-sidebar text-sidebar-foreground md:flex">
+      <div className="px-5 pb-5 pt-6">
+        <Link href="/oportunidades" className="flex items-center gap-3 rounded-xl px-2 py-1">
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground font-extrabold text-sm shadow-[0_10px_24px_rgba(197,31,70,0.25)]">
             M
           </span>
-          <span className="text-lg font-bold tracking-tight">MetaUTP</span>
+          <span>
+            <span className="block text-lg font-extrabold tracking-tight">MetaUTP</span>
+            <span className="mt-0.5 block text-[11px] font-semibold uppercase tracking-[0.13em] text-sidebar-muted">Tu mapa académico</span>
+          </span>
         </Link>
       </div>
 
-      <nav className="flex-1 px-3 space-y-1">
+      <nav className="flex-1 space-y-1.5 px-3">
         {NAV_ITEMS.map((item) => {
           const active = pathname?.startsWith(item.href);
           const Icon = item.icon;
@@ -48,10 +58,10 @@ export function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+              className={`group flex items-center gap-3 rounded-xl px-3.5 py-3 text-[15px] font-semibold transition-all duration-200 ${
                 active
-                  ? "bg-primary text-primary-foreground"
-                  : "text-sidebar-muted hover:bg-sidebar-soft hover:text-sidebar-foreground"
+                  ? "bg-primary text-primary-foreground shadow-[0_10px_24px_rgba(197,31,70,0.2)]"
+                  : "text-sidebar-muted hover:translate-x-0.5 hover:bg-sidebar-soft hover:text-sidebar-foreground"
               }`}
             >
               <Icon width={18} height={18} />
@@ -61,17 +71,17 @@ export function Sidebar() {
         })}
       </nav>
 
-      <div className="border-t border-white/10 px-3 py-4">
-        <div className="flex items-center gap-3 rounded-lg px-3 py-2">
-          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-sidebar-soft text-sidebar-foreground">
-            <UserIcon width={16} height={16} />
+      <div className="border-t border-white/10 p-3">
+        <div className="flex items-center gap-3 rounded-2xl border border-white/8 bg-sidebar-soft/70 p-3">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-extrabold text-white">
+            {initials || <UserIcon width={17} height={17} />}
           </span>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium text-sidebar-foreground">
+            <p className="truncate text-sm font-bold text-sidebar-foreground" title={session.name}>
               {session.name || "Estudiante UTP"}
             </p>
-            <p className="truncate text-xs text-sidebar-muted">
-              {session.email || "sin correo"}
+            <p className="mt-0.5 truncate text-xs font-medium text-sidebar-muted" title={session.email}>
+              {session.email || "Cuenta personal"}
             </p>
           </div>
           <button
@@ -84,7 +94,7 @@ export function Sidebar() {
             }}
             aria-label="Cerrar sesión"
             title="Cerrar sesión"
-            className="text-sidebar-muted hover:text-sidebar-foreground"
+            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg text-sidebar-muted transition hover:bg-white/8 hover:text-sidebar-foreground"
           >
             <LogOutIcon width={16} height={16} />
           </button>

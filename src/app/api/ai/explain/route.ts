@@ -140,12 +140,14 @@ export async function POST(request: NextRequest) {
 
   const profile: StudentProfile = {
     name: "",
+    career: "",
     cycle: parsed.data.profile.cycle,
     cumulativeGpa: parsed.data.profile.cumulativeGpa,
     approvedCredits: parsed.data.profile.approvedCredits,
     courses: [],
     preferredCategories: [],
     onboarded: true,
+    academicSetupComplete: true,
   };
   const evaluation = evaluateOpportunity(opportunity, profile);
   const fallback = deterministicExplanation(

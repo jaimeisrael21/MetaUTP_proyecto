@@ -61,20 +61,24 @@ export interface Course {
 
 export interface StudentProfile {
   name: string;
+  career: string;
   cycle: number; // ciclo actual, 1-10+
   cumulativeGpa: number; // promedio ponderado acumulado, 0-20
   approvedCredits: number; // créditos aprobados acumulados
   courses: Course[]; // cursos del ciclo actual, para los simuladores
   preferredCategories: OpportunityCategory[]; // intereses opcionales usados solo para jerarquizar
-  onboarded: boolean; // true tras completar "Configurar ciclo"
+  onboarded: boolean; // true tras completar los datos generales del perfil
+  academicSetupComplete: boolean; // true tras revisar la carga manual/OCR de cursos
 }
 
 export const emptyProfile: StudentProfile = {
   name: "",
+  career: "",
   cycle: 1,
   cumulativeGpa: 0,
   approvedCredits: 0,
   courses: [],
   preferredCategories: [],
   onboarded: false,
+  academicSetupComplete: false,
 };

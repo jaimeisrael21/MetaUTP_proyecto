@@ -55,12 +55,12 @@ export function StatusBadge({
 }) {
   const config = CONFIG[status];
   const Icon = config.icon;
-  const padding = size === "sm" ? "px-2 py-1 text-xs" : "px-3 py-1.5 text-sm";
+  const padding = size === "sm" ? "px-2.5 py-1.5 text-[13px]" : "px-3.5 py-2 text-sm";
   const iconSize = size === "sm" ? 14 : 16;
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full font-medium ${config.bg} ${config.text} ${padding}`}
+      className={`inline-flex items-center gap-1.5 rounded-full font-bold ring-1 ring-current/10 ${config.bg} ${config.text} ${padding}`}
     >
       <Icon width={iconSize} height={iconSize} strokeWidth={2.5} />
       {label ?? config.label}

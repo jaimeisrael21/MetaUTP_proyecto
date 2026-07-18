@@ -65,7 +65,9 @@ export default function LoginPage() {
     if (previous.email && previous.email !== account.email) clearProfile();
     login(account);
     const profile = getProfile();
-    router.push(profile.onboarded ? "/oportunidades" : "/bienvenida");
+    if (!profile.onboarded) router.push("/configurar");
+    else if (!profile.academicSetupComplete) router.push("/panel?setup=1");
+    else router.push("/oportunidades");
   }
 
   async function handleSubmit(event: React.FormEvent) {
@@ -137,7 +139,7 @@ export default function LoginPage() {
   }
 
   function enterDemo() {
-    enterProduct({ name: "Jaime", email: "demo@metautp.app" });
+    enterProduct({ name: "Jaime Aramburu", email: "demo@metautp.app" });
   }
 
   async function resetDemo() {
@@ -169,10 +171,10 @@ export default function LoginPage() {
         </div>
 
         <div className="max-w-md">
-          <h1 className="text-3xl font-bold leading-tight">
+          <h1 className="text-4xl font-bold leading-tight tracking-tight">
             Tus datos académicos pueden acercarte a oportunidades que hoy no ves.
           </h1>
-          <p className="mt-4 leading-relaxed text-sidebar-muted">
+          <p className="mt-5 text-base leading-7 text-sidebar-muted">
             MetaUTP organiza oportunidades documentadas y compara sus requisitos con la
             información que tú decides registrar: qué cumples, qué te falta y qué debe
             validar una entidad responsable.
@@ -180,7 +182,7 @@ export default function LoginPage() {
 
           <div className="mt-8 space-y-4">
             {[
-              [CompassIcon, "Explora las 37 oportunidades por categoría o jerarquízalas para ti."],
+              [CompassIcon, "Explora oportunidades ordenadas según tu perfil y por categoría."],
               [GaugeIcon, "Simula escenarios sin confundir una proyección con una aceptación."],
               [ShieldIcon, "Tu cuenta es independiente: nunca pedimos la contraseña institucional."],
             ].map(([Icon, text]) => {
@@ -190,20 +192,20 @@ export default function LoginPage() {
                   <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-soft">
                     <ItemIcon width={16} height={16} />
                   </span>
-                  <p className="text-sm leading-relaxed text-sidebar-muted">{String(text)}</p>
+                  <p className="text-base leading-6 text-sidebar-muted">{String(text)}</p>
                 </div>
               );
             })}
           </div>
         </div>
 
-        <p className="text-xs text-sidebar-muted">
-          Proyecto independiente · Fuentes visibles · Resultados explicables
+        <p className="text-sm font-medium text-sidebar-muted">
+          Privacidad por diseño · Fuentes verificables · Resultados explicables
         </p>
       </div>
 
       <div className="flex w-full flex-col items-center justify-center bg-canvas px-6 py-12 lg:w-1/2">
-        <div className="w-full max-w-sm">
+        <div className="w-full max-w-md">
           <div className="mb-8 flex items-center gap-2 lg:hidden">
             <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-sm font-bold text-primary-foreground">
               M
@@ -211,18 +213,18 @@ export default function LoginPage() {
             <span className="text-lg font-bold tracking-tight">MetaUTP</span>
           </div>
 
-          <h2 className="text-2xl font-bold text-canvas-foreground">
+          <h2 className="text-3xl font-bold tracking-tight text-canvas-foreground">
             {mode === "login" ? "Inicia sesión" : "Crea tu cuenta"}
           </h2>
-          <p className="mt-1 text-sm text-canvas-foreground/60">
+          <p className="mt-2 text-base leading-6 text-canvas-foreground/60">
             {mode === "login"
               ? "Usa la cuenta personal que creaste para MetaUTP."
               : "Usa Gmail, Outlook u otro correo personal; no tiene que ser de la UTP."}
           </p>
 
           <div className="mt-5 rounded-xl border border-primary/20 bg-primary-soft px-4 py-3">
-            <p className="text-xs font-semibold text-primary">Cuenta independiente</p>
-            <p className="mt-1 text-xs leading-relaxed text-canvas-foreground/70">
+            <p className="text-sm font-bold text-primary">Cuenta personal y segura</p>
+            <p className="mt-1 text-sm leading-6 text-canvas-foreground/70">
               No ingreses credenciales de UTP+ Portal o UTPClass. La contraseña de MetaUTP
               se procesa con autenticación segura de Supabase y no se guarda en el navegador.
             </p>
@@ -243,7 +245,7 @@ export default function LoginPage() {
                   autoComplete="name"
                   required
                   disabled={loading}
-                  className="mt-1.5 w-full rounded-lg border border-border-strong bg-white px-3.5 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                  className="field-control"
                 />
               </div>
             )}
@@ -261,7 +263,7 @@ export default function LoginPage() {
                 autoComplete="email"
                 required
                 disabled={loading}
-                className="mt-1.5 w-full rounded-lg border border-border-strong bg-white px-3.5 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                className="field-control"
               />
             </div>
 
@@ -279,7 +281,7 @@ export default function LoginPage() {
                 minLength={mode === "signup" ? 8 : 1}
                 required
                 disabled={loading}
-                className="mt-1.5 w-full rounded-lg border border-border-strong bg-white px-3.5 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                className="field-control"
               />
             </div>
 
@@ -297,7 +299,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary-hover disabled:cursor-wait disabled:opacity-60"
+              className="primary-button w-full disabled:cursor-wait disabled:opacity-60"
             >
               {loading ? "Procesando…" : mode === "login" ? "Iniciar sesión" : "Crear cuenta"}
             </button>
@@ -306,7 +308,7 @@ export default function LoginPage() {
           <button
             type="button"
             onClick={enterDemo}
-            className="mt-3 w-full rounded-lg border border-border-strong bg-white px-4 py-2.5 text-sm font-semibold text-canvas-foreground hover:bg-canvas-soft"
+            className="secondary-button mt-3 w-full"
           >
             Explorar demo sin crear cuenta
           </button>
@@ -342,7 +344,7 @@ export default function LoginPage() {
             onClick={resetDemo}
             className="mt-10 block w-full text-center text-xs text-canvas-foreground/35 hover:text-canvas-foreground/60"
           >
-            Cerrar sesión y reiniciar este dispositivo
+            Restablecer la demo de este dispositivo
           </button>
         </div>
       </div>

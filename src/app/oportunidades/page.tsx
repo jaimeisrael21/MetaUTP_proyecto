@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/AppShell";
+import { ChevronLeftIcon, CompassIcon, SparklesIcon } from "@/components/icons";
 import { OpportunityCard } from "@/components/OpportunityCard";
-import { SlidersIcon } from "@/components/icons";
+import { SetupProgress } from "@/components/SetupProgress";
 import { opportunities } from "@/data/opportunities";
 import type { OpportunityCategory } from "@/data/types";
 import { evaluateOpportunity, rankOpportunity } from "@/lib/matching";
@@ -17,36 +18,29 @@ const CATEGORIES: (OpportunityCategory | "Todas")[] = [
   "Empleabilidad",
   "Convenios",
 ];
-
-const WINDOW_FILTERS = ["Todas", "Abiertas", "Próximas", "Cerradas", "Informativas"] as const;
-type WindowFilter = (typeof WINDOW_FILTERS)[number];
-
-function matchesWindowFilter(
-  filter: WindowFilter,
-  status: "active" | "upcoming" | "closed" | "ongoing",
-  informational: boolean
-) {
-  if (filter === "Todas") return true;
-  if (filter === "Informativas") return informational;
-  if (informational) return false;
-  if (filter === "Abiertas") return status === "active" || status === "ongoing";
-  if (filter === "Próximas") return status === "upcoming";
-  return status === "closed";
-}
+const PAGE_SIZE = 6;
 
 export default function OportunidadesPage() {
   const router = useRouter();
   const { session, hydrated: sessionHydrated } = useSession();
-  const { profile, update, hydrated: profileHydrated } = useProfile();
+  const { profile, hydrated: profileHydrated } = useProfile();
   const [category, setCategory] = useState<(typeof CATEGORIES)[number]>("Todas");
-  const [windowFilter, setWindowFilter] = useState<WindowFilter>("Todas");
-  const [rankingEnabled, setRankingEnabled] = useState(false);
+  const [page, setPage] = useState(1);
+  const resultsStart = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!sessionHydrated || !profileHydrated) return;
     if (!session.loggedIn) router.replace("/");
-    else if (!profile.onboarded) router.replace("/bienvenida");
-  }, [sessionHydrated, profileHydrated, session.loggedIn, profile.onboarded, router]);
+    else if (!profile.onboarded) router.replace("/configurar");
+    else if (!profile.academicSetupComplete) router.replace("/panel?setup=1");
+  }, [
+    sessionHydrated,
+    profileHydrated,
+    session.loggedIn,
+    profile.onboarded,
+    profile.academicSetupComplete,
+    router,
+  ]);
 
   const evaluatedAll = useMemo(
     () =>
@@ -56,230 +50,191 @@ export default function OportunidadesPage() {
           opportunity,
           evaluation,
           catalogIndex,
-          ranking: rankOpportunity(
-            opportunity,
-            evaluation,
-            profile.preferredCategories ?? []
-          ),
+          ranking: rankOpportunity(opportunity, evaluation, profile.preferredCategories ?? []),
         };
       }),
     [profile]
   );
 
-  const visibleOpportunities = useMemo(() => {
-    const filtered = evaluatedAll
-      .filter(
-        ({ opportunity }) => category === "Todas" || opportunity.category === category
-      )
-      .filter(({ opportunity, evaluation }) =>
-        matchesWindowFilter(
-          windowFilter,
-          evaluation.window.status,
-          opportunity.actionability === "informational"
-        )
+  const orderedOpportunities = useMemo(() => {
+    return evaluatedAll
+      .filter(({ opportunity }) => category === "Todas" || opportunity.category === category)
+      .sort(
+        (first, second) =>
+          second.ranking.score - first.ranking.score || first.catalogIndex - second.catalogIndex
       );
+  }, [category, evaluatedAll]);
 
-    return filtered.sort((first, second) => {
-      if (!rankingEnabled) return first.catalogIndex - second.catalogIndex;
-      return second.ranking.score - first.ranking.score || first.catalogIndex - second.catalogIndex;
-    });
-  }, [category, evaluatedAll, rankingEnabled, windowFilter]);
+  const totalPages = Math.max(1, Math.ceil(orderedOpportunities.length / PAGE_SIZE));
+  const pageItems = orderedOpportunities.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const summary = useMemo(() => {
-    const openActionable = evaluatedAll.filter(
+    const currentlyRelevant = evaluatedAll.filter(
       ({ opportunity, evaluation }) =>
-        opportunity.actionability !== "informational" &&
-        (evaluation.window.status === "active" || evaluation.window.status === "ongoing")
+        opportunity.actionability !== "informational" && evaluation.window.status !== "closed"
     );
     return {
-      readyNow: openActionable.filter(
-        ({ evaluation }) =>
-          evaluation.unmetCount === 0 &&
-          evaluation.closeCount === 0 &&
-          evaluation.needsInfoCount === 0
-      ).length,
-      closeNow: openActionable.filter(({ evaluation }) => evaluation.closeCount > 0).length,
-      openNow: openActionable.length,
-      mapped: evaluatedAll.length,
+      ready: currentlyRelevant.filter(({ evaluation }) => evaluation.dominantStatus === "met").length,
+      close: currentlyRelevant.filter(({ evaluation }) => evaluation.dominantStatus === "close").length,
+      needsInfo: currentlyRelevant.filter(({ evaluation }) => evaluation.dominantStatus === "needs_info").length,
+      official: currentlyRelevant.filter(({ evaluation }) => evaluation.dominantStatus === "official").length,
     };
   }, [evaluatedAll]);
 
-  function togglePreferredCategory(selected: OpportunityCategory) {
-    const current = profile.preferredCategories ?? [];
-    update({
-      preferredCategories: current.includes(selected)
-        ? current.filter((item) => item !== selected)
-        : [...current, selected],
+  function chooseCategory(next: (typeof CATEGORIES)[number]) {
+    setCategory(next);
+    setPage(1);
+  }
+
+  function goToPage(next: number) {
+    setPage(next);
+    window.requestAnimationFrame(() => {
+      resultsStart.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
   }
 
-  if (!profileHydrated || !profile.onboarded) return null;
+  if (!profileHydrated || !profile.onboarded || !profile.academicSetupComplete) return null;
+
+  const rangeStart = orderedOpportunities.length === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
+  const rangeEnd = Math.min(page * PAGE_SIZE, orderedOpportunities.length);
 
   return (
     <AppShell>
-      <div className="px-5 py-7 md:px-10 md:py-9">
-        <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
-          <div>
-            <p className="text-sm font-semibold text-primary">Oportunidades</p>
-            <h1 className="mt-1 max-w-3xl text-2xl font-bold text-canvas-foreground md:text-3xl">
-              Las {summary.mapped} oportunidades siguen aquí. Tú decides cómo ordenarlas.
-            </h1>
-            <p className="mt-2 max-w-3xl text-sm leading-relaxed text-canvas-foreground/65">
-              Comparamos tu ciclo {profile.cycle}, promedio {profile.cumulativeGpa} y{" "}
-              {profile.approvedCredits} créditos con requisitos documentados. MetaUTP orienta;
-              la aceptación y los trámites siempre dependen de la entidad responsable.
-            </p>
-          </div>
-          <button
-            type="button"
-            aria-pressed={rankingEnabled}
-            onClick={() => setRankingEnabled((current) => !current)}
-            className={`inline-flex shrink-0 items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-bold transition-colors ${
-              rankingEnabled
-                ? "bg-sidebar text-sidebar-foreground"
-                : "border border-border-strong bg-white text-canvas-foreground hover:bg-canvas-soft"
-            }`}
-          >
-            <SlidersIcon width={17} height={17} />
-            {rankingEnabled ? "Volver al orden del catálogo" : "Jerarquizar oportunidades"}
-          </button>
+      <div className="mx-auto max-w-[1480px] px-5 py-7 md:px-9 md:py-9 xl:px-12">
+        <div className="max-w-2xl">
+          <SetupProgress current={3} />
         </div>
 
-        <section className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4" aria-label="Resumen personal">
-          <div className="rounded-xl border border-border bg-white p-4">
-            <p className="text-2xl font-bold text-status-met">{summary.readyNow}</p>
-            <p className="mt-1 text-xs text-canvas-foreground/60">sin bloqueos detectados hoy</p>
+        <header className="mt-7 page-enter">
+          <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+            <div>
+              <p className="eyebrow">Seleccionadas con tus datos</p>
+              <h1 className="mt-2 text-4xl font-bold tracking-tight text-canvas-foreground md:text-5xl">
+                Oportunidades
+              </h1>
+              <p className="mt-3 max-w-3xl text-base leading-7 text-canvas-foreground/70">
+                {profile.name ? `${profile.name.split(" ")[0]}, o` : "O"}rdenamos el catálogo según tu ciclo {profile.cycle},
+                promedio {profile.cumulativeGpa} y {profile.approvedCredits} créditos. Ninguna
+                oportunidad se oculta: usa los filtros y las páginas para explorarlas todas.
+              </p>
+            </div>
+            <div className="inline-flex shrink-0 items-center gap-2 self-start rounded-full border border-primary/20 bg-primary-soft px-4 py-2.5 text-sm font-bold text-primary xl:self-auto">
+              <SparklesIcon width={17} height={17} />
+              Orden personal activo
+            </div>
           </div>
-          <div className="rounded-xl border border-border bg-white p-4">
-            <p className="text-2xl font-bold text-status-close">{summary.closeNow}</p>
-            <p className="mt-1 text-xs text-canvas-foreground/60">cercanas por un requisito</p>
+        </header>
+
+        <section className="mt-7 grid grid-cols-2 gap-3 lg:grid-cols-4" aria-label="Resumen personal">
+          <div className="metric-card metric-card--met">
+            <span className="metric-card__value">{summary.ready}</span>
+            <span className="metric-card__label">Listas para explorar</span>
+            <span className="metric-card__help">Sin bloqueos detectados</span>
           </div>
-          <div className="rounded-xl border border-border bg-white p-4">
-            <p className="text-2xl font-bold text-status-info">{summary.openNow}</p>
-            <p className="mt-1 text-xs text-canvas-foreground/60">abiertas o permanentes</p>
+          <div className="metric-card metric-card--close">
+            <span className="metric-card__value">{summary.close}</span>
+            <span className="metric-card__label">Estás muy cerca</span>
+            <span className="metric-card__help">A un requisito medible</span>
           </div>
-          <div className="rounded-xl border border-border bg-white p-4">
-            <p className="text-2xl font-bold text-canvas-foreground">{summary.mapped}</p>
-            <p className="mt-1 text-xs text-canvas-foreground/60">en el catálogo completo</p>
+          <div className="metric-card metric-card--info">
+            <span className="metric-card__value">{summary.needsInfo}</span>
+            <span className="metric-card__label">Completa un dato</span>
+            <span className="metric-card__help">Puedes mejorarlas hoy</span>
+          </div>
+          <div className="metric-card metric-card--official">
+            <span className="metric-card__value">{summary.official}</span>
+            <span className="metric-card__label">Validación oficial</span>
+            <span className="metric-card__help">Dependen de la entidad</span>
           </div>
         </section>
 
-        {rankingEnabled && (
-          <section className="mt-5 rounded-2xl border border-primary/20 bg-primary-soft p-4 md:p-5">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-              <div>
-                <h2 className="text-sm font-bold text-primary">Orden personal activado</h2>
-                <p className="mt-1 max-w-2xl text-xs leading-relaxed text-canvas-foreground/65">
-                  Priorizamos compatibilidad, vigencia, cercanía e intereses. No ocultamos
-                  ninguna oportunidad ni convertimos el orden en una promesa de admisión.
-                </p>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="mr-1 text-xs font-semibold text-canvas-foreground/55">
-                  Mis intereses:
-                </span>
-                {CATEGORIES.filter((item): item is OpportunityCategory => item !== "Todas").map(
-                  (item) => {
-                    const selected = (profile.preferredCategories ?? []).includes(item);
-                    return (
-                      <button
-                        key={item}
-                        type="button"
-                        aria-pressed={selected}
-                        onClick={() => togglePreferredCategory(item)}
-                        className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
-                          selected
-                            ? "bg-primary text-primary-foreground"
-                            : "border border-primary/20 bg-white text-canvas-foreground/65"
-                        }`}
-                      >
-                        {item}
-                      </button>
-                    );
-                  }
-                )}
-              </div>
+        <section className="mt-7" aria-labelledby="catalog-title">
+          <div className="flex flex-col gap-4 rounded-2xl border border-border bg-white p-4 shadow-sm lg:flex-row lg:items-center lg:justify-between lg:p-5">
+            <div>
+              <h2 id="catalog-title" className="text-lg font-bold text-canvas-foreground">Explora por categoría</h2>
+              <p className="mt-1 text-sm text-canvas-foreground/60">Dentro de cada categoría mantenemos primero lo más relevante para ti.</p>
             </div>
-          </section>
-        )}
-
-        <div className="mt-6 flex flex-wrap gap-2" role="group" aria-label="Filtrar por categoría">
-          {CATEGORIES.map((item) => (
-            <button
-              key={item}
-              type="button"
-              aria-pressed={category === item}
-              onClick={() => setCategory(item)}
-              className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
-                category === item
-                  ? "bg-sidebar text-sidebar-foreground"
-                  : "border border-border bg-white text-canvas-foreground/70 hover:border-border-strong"
-              }`}
-            >
-              {item}
-            </button>
-          ))}
-        </div>
-
-        <div className="mt-4 flex flex-wrap items-center gap-2" role="group" aria-label="Filtrar por vigencia">
-          <span className="mr-1 text-xs font-semibold uppercase tracking-wide text-canvas-foreground/40">
-            Vigencia
-          </span>
-          {WINDOW_FILTERS.map((filter) => (
-            <button
-              key={filter}
-              type="button"
-              aria-pressed={windowFilter === filter}
-              onClick={() => setWindowFilter(filter)}
-              className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-                windowFilter === filter
-                  ? "bg-primary-soft text-primary"
-                  : "border border-border bg-white text-canvas-foreground/60 hover:border-border-strong"
-              }`}
-            >
-              {filter}
-            </button>
-          ))}
-        </div>
-
-        <div className="mt-6 flex flex-wrap items-center justify-between gap-2">
-          <p className="text-sm font-semibold text-canvas-foreground">
-            Mostrando {visibleOpportunities.length} de {summary.mapped}
-          </p>
-          <p className="text-xs text-canvas-foreground/50">
-            {rankingEnabled ? "Orden personal: de mayor a menor relevancia" : "Orden del catálogo completo"}
-          </p>
-        </div>
-
-        <div className="mt-3 grid gap-4 lg:grid-cols-2">
-          {visibleOpportunities.map(({ opportunity, evaluation, ranking }, index) => (
-            <OpportunityCard
-              key={opportunity.id}
-              opportunity={opportunity}
-              evaluation={evaluation}
-              rank={rankingEnabled ? index + 1 : undefined}
-              rankingReason={rankingEnabled ? ranking.reason : undefined}
-            />
-          ))}
-        </div>
-
-        {visibleOpportunities.length === 0 && (
-          <div className="mt-8 rounded-2xl border border-dashed border-border-strong bg-white p-8 text-center">
-            <p className="text-sm font-semibold text-canvas-foreground">
-              No hay resultados con esta combinación de filtros.
-            </p>
-            <button
-              type="button"
-              onClick={() => {
-                setCategory("Todas");
-                setWindowFilter("Todas");
-              }}
-              className="mt-3 text-sm font-bold text-primary"
-            >
-              Ver las {summary.mapped} oportunidades
-            </button>
+            <div className="flex flex-wrap gap-2" role="group" aria-label="Filtrar por categoría">
+              {CATEGORIES.map((item) => (
+                <button
+                  key={item}
+                  type="button"
+                  aria-pressed={category === item}
+                  onClick={() => chooseCategory(item)}
+                  className={`filter-pill ${category === item ? "filter-pill--active" : ""}`}
+                >
+                  {item}
+                </button>
+              ))}
+            </div>
           </div>
-        )}
+
+          <div ref={resultsStart} className="scroll-mt-5 pt-6">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-base font-bold text-canvas-foreground">
+                {category === "Todas" ? "Recomendadas para ti" : category}
+              </p>
+              <p className="text-sm font-semibold text-canvas-foreground/55">
+                Mostrando {rangeStart}–{rangeEnd} de {orderedOpportunities.length}
+              </p>
+            </div>
+
+            <div className="mt-4 grid gap-5 md:grid-cols-2 2xl:grid-cols-3">
+              {pageItems.map(({ opportunity, evaluation, ranking }, index) => (
+                <OpportunityCard
+                  key={opportunity.id}
+                  opportunity={opportunity}
+                  evaluation={evaluation}
+                  rank={(page - 1) * PAGE_SIZE + index + 1}
+                  rankingReason={ranking.reason}
+                  animationIndex={index}
+                />
+              ))}
+            </div>
+
+            {pageItems.length === 0 && (
+              <div className="mt-5 rounded-2xl border border-dashed border-border-strong bg-white p-8 text-center">
+                <CompassIcon className="mx-auto text-primary" width={28} height={28} />
+                <p className="mt-3 text-base font-bold text-canvas-foreground">No hay resultados en esta categoría.</p>
+                <button type="button" onClick={() => chooseCategory("Todas")} className="secondary-button mt-4">Ver todas</button>
+              </div>
+            )}
+
+            {totalPages > 1 && (
+              <nav className="mt-8 flex flex-wrap items-center justify-center gap-2" aria-label="Páginas de oportunidades">
+                <button
+                  type="button"
+                  disabled={page === 1}
+                  onClick={() => goToPage(page - 1)}
+                  className="pagination-button"
+                  aria-label="Página anterior"
+                >
+                  <ChevronLeftIcon width={18} height={18} />
+                </button>
+                {Array.from({ length: totalPages }, (_, index) => index + 1).map((number) => (
+                  <button
+                    key={number}
+                    type="button"
+                    aria-current={page === number ? "page" : undefined}
+                    onClick={() => goToPage(number)}
+                    className={`pagination-button ${page === number ? "pagination-button--active" : ""}`}
+                  >
+                    {number}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  disabled={page === totalPages}
+                  onClick={() => goToPage(page + 1)}
+                  className="pagination-button"
+                  aria-label="Página siguiente"
+                >
+                  <ChevronLeftIcon className="rotate-180" width={18} height={18} />
+                </button>
+              </nav>
+            )}
+          </div>
+        </section>
       </div>
     </AppShell>
   );

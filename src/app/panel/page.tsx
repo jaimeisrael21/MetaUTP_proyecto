@@ -1,14 +1,23 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
-import { useProfile, useSession } from "@/lib/store";
-import { weightedAverage } from "@/lib/matching";
-import type { Course } from "@/data/types";
+import {
+  ArrowRightIcon,
+  CheckCircleIcon,
+  HelpCircleIcon,
+  PencilIcon,
+  PlusIcon,
+  ScanTextIcon,
+  TrashIcon,
+} from "@/components/icons";
 import { OcrCourseImporter } from "@/components/OcrCourseImporter";
-import { PencilIcon, PlusIcon, ScanTextIcon, SlidersIcon, TrashIcon } from "@/components/icons";
+import { SetupProgress } from "@/components/SetupProgress";
+import type { Course } from "@/data/types";
+import { weightedAverage } from "@/lib/matching";
+import { useProfile, useSession } from "@/lib/store";
 
 function newCourse(): Course {
   return { id: crypto.randomUUID(), name: "", credits: 3, grade: 14 };
@@ -24,24 +33,25 @@ export default function PanelPage() {
   useEffect(() => {
     if (!sessionHydrated || !profileHydrated) return;
     if (!session.loggedIn) router.replace("/");
-    else if (!profile.onboarded) router.replace("/bienvenida");
+    else if (!profile.onboarded) router.replace("/configurar");
   }, [sessionHydrated, profileHydrated, session.loggedIn, profile.onboarded, router]);
 
   if (!profileHydrated || !profile.onboarded) return null;
 
-  const cycleAverage = weightedAverage(courses.filter((c) => c.name.trim()));
-  const totalCredits = courses.reduce((s, c) => s + (c.credits || 0), 0);
+  const validCourses = courses.filter((course) => course.name.trim());
+  const cycleAverage = weightedAverage(validCourses);
+  const totalCredits = validCourses.reduce((sum, course) => sum + (course.credits || 0), 0);
 
   function persist(next: Course[]) {
     update({ courses: next });
   }
 
   function updateCourse(id: string, patch: Partial<Course>) {
-    persist(courses.map((c) => (c.id === id ? { ...c, ...patch } : c)));
+    persist(courses.map((course) => (course.id === id ? { ...course, ...patch } : course)));
   }
 
   function removeCourse(id: string) {
-    persist(courses.filter((c) => c.id !== id));
+    persist(courses.filter((course) => course.id !== id));
   }
 
   function addCourse() {
@@ -50,173 +60,202 @@ export default function PanelPage() {
 
   function importCourses(imported: Course[]) {
     const existing = courses.filter((course) => course.name.trim());
-    const existingNames = new Set(existing.map((course) => course.name.trim().toLocaleLowerCase("es")));
-    const uniqueImported = imported.filter((course) => {
+    const names = new Set(existing.map((course) => course.name.trim().toLocaleLowerCase("es")));
+    const unique = imported.filter((course) => {
       const key = course.name.trim().toLocaleLowerCase("es");
-      if (!key || existingNames.has(key)) return false;
-      existingNames.add(key);
+      if (!key || names.has(key)) return false;
+      names.add(key);
       return true;
     });
-    persist([...existing, ...uniqueImported]);
+    persist([...existing, ...unique]);
     setEntryMethod("manual");
+  }
+
+  function finishSetup() {
+    update({ academicSetupComplete: true });
+    router.push("/oportunidades");
   }
 
   return (
     <AppShell>
-      <div className="mx-auto max-w-3xl px-6 py-8 md:px-10">
-        <p className="text-sm font-semibold text-primary">Panel del ciclo</p>
-        <h1 className="mt-1 text-2xl font-bold text-canvas-foreground md:text-3xl">
-          Tus cursos del {profile.cycle}° ciclo
-        </h1>
-        <p className="mt-2 max-w-xl text-sm text-canvas-foreground/60">
-          Elige si quieres escribir tus cursos o partir de una captura del horario. En
-          ambos casos podrás revisar y corregir la información antes de usarla.
-        </p>
-
-        <div className="mt-6 grid gap-3 sm:grid-cols-2" role="group" aria-label="Método para registrar cursos">
-          <button
-            type="button"
-            aria-pressed={entryMethod === "manual"}
-            onClick={() => setEntryMethod("manual")}
-            className={`flex items-start gap-3 rounded-2xl border p-4 text-left transition-colors ${
-              entryMethod === "manual"
-                ? "border-primary bg-primary-soft"
-                : "border-border bg-white hover:border-border-strong"
-            }`}
-          >
-            <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${entryMethod === "manual" ? "bg-primary text-white" : "bg-canvas-soft text-canvas-foreground/60"}`}>
-              <PencilIcon width={18} height={18} />
-            </span>
-            <span>
-              <span className="block text-sm font-bold text-canvas-foreground">Ingresar manualmente</span>
-              <span className="mt-1 block text-xs leading-relaxed text-canvas-foreground/60">
-                Escribe nombres, créditos y notas con control total.
-              </span>
-            </span>
-          </button>
-          <button
-            type="button"
-            aria-pressed={entryMethod === "ocr"}
-            onClick={() => setEntryMethod("ocr")}
-            className={`flex items-start gap-3 rounded-2xl border p-4 text-left transition-colors ${
-              entryMethod === "ocr"
-                ? "border-primary bg-primary-soft"
-                : "border-border bg-white hover:border-border-strong"
-            }`}
-          >
-            <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${entryMethod === "ocr" ? "bg-primary text-white" : "bg-canvas-soft text-canvas-foreground/60"}`}>
-              <ScanTextIcon width={18} height={18} />
-            </span>
-            <span>
-              <span className="block text-sm font-bold text-canvas-foreground">Escanear con OCR</span>
-              <span className="mt-1 block text-xs leading-relaxed text-canvas-foreground/60">
-                Lee una captura local y propone cursos para revisar.
-              </span>
-            </span>
-          </button>
+      <div className="mx-auto max-w-6xl px-5 py-7 md:px-10 md:py-10">
+        <div className="max-w-2xl">
+          <SetupProgress current={2} />
         </div>
 
-        {entryMethod === "ocr" && (
-          <div className="mt-5">
-            <OcrCourseImporter onImport={importCourses} />
+        <header className="mt-8 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between page-enter">
+          <div>
+            <p className="eyebrow">Tu información académica</p>
+            <h1 className="mt-2 text-3xl font-bold tracking-tight text-canvas-foreground md:text-4xl">
+              Completa tu ciclo actual
+            </h1>
+            <p className="mt-3 max-w-2xl text-base leading-7 text-canvas-foreground/70">
+              Añade los cursos que llevas con sus créditos y notas. Revisarás todo antes de
+              usarlo para personalizar tus oportunidades.
+            </p>
           </div>
-        )}
+          <Link href="/configurar" className="secondary-button shrink-0">Editar perfil general</Link>
+        </header>
 
-        <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3">
-          <div className="rounded-xl border border-border bg-white p-4">
-            <p className="text-xs font-medium text-canvas-foreground/50">Promedio del ciclo</p>
-            <p className="mt-1 text-2xl font-bold text-canvas-foreground">
-              {cycleAverage || "—"}
-            </p>
+        <section className="mt-6 grid gap-3 rounded-2xl border border-border bg-white p-4 shadow-sm sm:grid-cols-3 md:p-5" aria-label="Resumen del perfil">
+          <div className="summary-inline">
+            <span className="summary-inline__label">Carrera</span>
+            <strong className="summary-inline__value">{profile.career || "Sin registrar"}</strong>
           </div>
-          <div className="rounded-xl border border-border bg-white p-4">
-            <p className="text-xs font-medium text-canvas-foreground/50">Créditos este ciclo</p>
-            <p className="mt-1 text-2xl font-bold text-canvas-foreground">{totalCredits}</p>
+          <div className="summary-inline">
+            <span className="summary-inline__label">Ciclo</span>
+            <strong className="summary-inline__value">{profile.cycle}°</strong>
           </div>
-          <div className="rounded-xl border border-border bg-white p-4">
-            <p className="text-xs font-medium text-canvas-foreground/50">Promedio acumulado</p>
-            <p className="mt-1 text-2xl font-bold text-canvas-foreground">
-              {profile.cumulativeGpa}
-            </p>
+          <div className="summary-inline">
+            <span className="summary-inline__label">Promedio acumulado</span>
+            <strong className="summary-inline__value">{profile.cumulativeGpa}</strong>
           </div>
-        </div>
+        </section>
+
+        <section className="mt-7" aria-labelledby="entry-method-title">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-bold text-canvas-foreground" id="entry-method-title">¿Cómo quieres añadirlos?</p>
+              <p className="mt-1 text-sm text-canvas-foreground/60">Puedes cambiar de método cuando quieras.</p>
+            </div>
+            <div className="group relative">
+              <button
+                type="button"
+                className="inline-flex cursor-help items-center gap-1.5 rounded-full border border-border bg-white px-3 py-2 text-[13px] font-semibold text-canvas-foreground/65 transition hover:border-status-info/40 hover:text-status-info"
+                aria-describedby="ocr-help"
+              >
+                <HelpCircleIcon width={16} height={16} />
+                ¿Qué debe mostrar mi archivo?
+              </button>
+              <div
+                id="ocr-help"
+                role="tooltip"
+                className="pointer-events-none absolute right-0 top-full z-20 mt-2 w-72 translate-y-1 rounded-xl bg-sidebar px-4 py-3 text-sm leading-6 text-sidebar-foreground opacity-0 shadow-xl transition group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:translate-y-0 group-focus-within:opacity-100"
+              >
+                Usa una captura legible que muestre los nombres de tus cursos. Si también
+                aparecen notas y créditos, el OCR intentará detectarlos para que los confirmes.
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 grid gap-4 sm:grid-cols-2" role="group" aria-label="Método para registrar cursos">
+            <button
+              type="button"
+              aria-pressed={entryMethod === "manual"}
+              onClick={() => setEntryMethod("manual")}
+              className={`method-card ${entryMethod === "manual" ? "method-card--active" : ""}`}
+            >
+              <span className="method-card__icon"><PencilIcon width={21} height={21} /></span>
+              <span>
+                <span className="block text-base font-bold text-canvas-foreground">Ingresar manualmente</span>
+                <span className="mt-1 block text-sm leading-6 text-canvas-foreground/65">Control total sobre nombres, créditos y notas.</span>
+              </span>
+              {entryMethod === "manual" && <CheckCircleIcon className="ml-auto shrink-0 text-primary" width={21} height={21} />}
+            </button>
+            <button
+              type="button"
+              aria-pressed={entryMethod === "ocr"}
+              onClick={() => setEntryMethod("ocr")}
+              className={`method-card ${entryMethod === "ocr" ? "method-card--active" : ""}`}
+            >
+              <span className="method-card__icon"><ScanTextIcon width={21} height={21} /></span>
+              <span>
+                <span className="block text-base font-bold text-canvas-foreground">Escanear con OCR</span>
+                <span className="mt-1 block text-sm leading-6 text-canvas-foreground/65">Sube una captura y revisa lo que detectamos.</span>
+              </span>
+              {entryMethod === "ocr" && <CheckCircleIcon className="ml-auto shrink-0 text-primary" width={21} height={21} />}
+            </button>
+          </div>
+        </section>
+
+        {entryMethod === "ocr" && <div className="mt-5 page-enter"><OcrCourseImporter onImport={importCourses} /></div>}
 
         {entryMethod === "manual" && (
-          <>
-            <div className="mt-8 space-y-3">
+          <section className="mt-7 page-enter" aria-labelledby="courses-title">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <h2 id="courses-title" className="text-xl font-bold text-canvas-foreground">Cursos registrados</h2>
+                <p className="mt-1 text-sm text-canvas-foreground/60">Las notas usan la escala de 0 a 20.</p>
+              </div>
+              <button type="button" onClick={addCourse} className="secondary-button">
+                <PlusIcon width={17} height={17} />
+                Agregar curso
+              </button>
+            </div>
+
+            <div className="mt-4 space-y-3">
               {courses.length === 0 && (
-                <p className="rounded-xl border border-dashed border-border-strong bg-white px-4 py-5 text-center text-sm text-canvas-foreground/60">
-                  Aún no registraste cursos. Agrégalos uno por uno o cambia a “Escanear con OCR”.
-                </p>
+                <button type="button" onClick={addCourse} className="empty-course-state">
+                  <span className="flex h-11 w-11 items-center justify-center rounded-full bg-primary-soft text-primary"><PlusIcon width={20} height={20} /></span>
+                  <span>
+                    <strong className="block text-base text-canvas-foreground">Añade tu primer curso</strong>
+                    <span className="mt-1 block text-sm text-canvas-foreground/60">Nombre, créditos y nota del ciclo actual.</span>
+                  </span>
+                </button>
               )}
+
               {courses.map((course) => (
-                <div
-                  key={course.id}
-                  className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-white p-4"
-                >
-                  <input
-                    type="text"
-                    value={course.name}
-                    aria-label="Nombre del curso"
-                    onChange={(e) => updateCourse(course.id, { name: e.target.value })}
-                    placeholder="Nombre del curso"
-                    className="min-w-[10rem] flex-1 rounded-lg border border-border-strong bg-white px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-                  />
-                  <label className="flex items-center gap-2 text-xs text-canvas-foreground/50">
-                    Créditos
+                <div key={course.id} className="course-row">
+                  <label className="min-w-0 flex-1">
+                    <span className="course-row__label">Curso</span>
+                    <input
+                      type="text"
+                      value={course.name}
+                      onChange={(event) => updateCourse(course.id, { name: event.target.value })}
+                      placeholder="Nombre del curso"
+                      className="field-control mt-1"
+                    />
+                  </label>
+                  <label className="w-[112px]">
+                    <span className="course-row__label">Créditos</span>
                     <input
                       type="number"
                       min={0}
                       value={course.credits}
-                      onChange={(e) => updateCourse(course.id, { credits: Number(e.target.value) })}
-                      className="w-16 rounded-lg border border-border-strong bg-white px-2 py-2 text-sm text-canvas-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                      onChange={(event) => updateCourse(course.id, { credits: Number(event.target.value) })}
+                      className="field-control mt-1"
                     />
                   </label>
-                  <label className="flex items-center gap-2 text-xs text-canvas-foreground/50">
-                    Nota
+                  <label className="w-[112px]">
+                    <span className="course-row__label">Nota</span>
                     <input
                       type="number"
                       min={0}
                       max={20}
                       step={0.1}
                       value={course.grade}
-                      onChange={(e) => updateCourse(course.id, { grade: Number(e.target.value) })}
-                      className="w-16 rounded-lg border border-border-strong bg-white px-2 py-2 text-sm text-canvas-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                      onChange={(event) => updateCourse(course.id, { grade: Number(event.target.value) })}
+                      className="field-control mt-1"
                     />
                   </label>
                   <button
                     type="button"
                     onClick={() => removeCourse(course.id)}
                     aria-label={`Eliminar ${course.name || "curso"}`}
-                    className="ml-auto text-canvas-foreground/40 hover:text-status-unmet"
+                    className="mb-1 mt-auto flex h-11 w-11 cursor-pointer items-center justify-center rounded-xl text-canvas-foreground/40 transition hover:bg-status-unmet-soft hover:text-status-unmet"
                   >
-                    <TrashIcon width={16} height={16} />
+                    <TrashIcon width={18} height={18} />
                   </button>
                 </div>
               ))}
             </div>
-
-            <button
-              type="button"
-              onClick={addCourse}
-              className="mt-4 flex items-center gap-2 rounded-lg border border-dashed border-border-strong px-4 py-2.5 text-sm font-medium text-canvas-foreground/70 hover:border-primary hover:text-primary"
-            >
-              <PlusIcon width={16} height={16} />
-              Agregar curso
-            </button>
-          </>
+          </section>
         )}
 
-        <Link
-          href="/simulador"
-          className="mt-8 flex items-center justify-between gap-3 rounded-2xl bg-sidebar px-5 py-4 text-sidebar-foreground transition-opacity hover:opacity-90"
-        >
-          <span className="flex items-center gap-3 text-sm font-medium">
-            <SlidersIcon width={18} height={18} />
-            Simula qué necesitas para llegar a una oportunidad concreta
-          </span>
-          <span className="text-sm font-semibold text-primary">Ir al simulador →</span>
-        </Link>
+        <section className="mt-8 grid gap-4 rounded-3xl bg-sidebar p-5 text-sidebar-foreground shadow-xl md:grid-cols-[1fr_auto] md:items-center md:p-6">
+          <div>
+            <p className="text-lg font-bold">Tu perfil ya puede empezar a trabajar por ti</p>
+            <p className="mt-1 text-sm leading-6 text-sidebar-muted">
+              {validCourses.length > 0
+                ? `${validCourses.length} curso${validCourses.length === 1 ? "" : "s"} · promedio del ciclo ${cycleAverage || "por calcular"} · ${totalCredits} créditos`
+                : "Puedes agregar cursos ahora o continuar con tu ciclo, promedio y créditos acumulados."}
+            </p>
+          </div>
+          <button type="button" onClick={finishSetup} className="primary-button min-w-64">
+            Ver mis oportunidades
+            <ArrowRightIcon width={18} height={18} />
+          </button>
+        </section>
       </div>
     </AppShell>
   );
