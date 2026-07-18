@@ -116,6 +116,7 @@ function safeFollowUpQuestions(profile: StudentProfile, questions: string[]) {
     ) return false;
     if (profile.facts.competitiveSport !== "unknown" && /deport/i.test(question)) return false;
     if (profile.facts.failedLastPeriod !== "unknown" && /desaprobad|reprobad/i.test(question)) return false;
+    if (/promedio/i.test(question) && !/(ciclo anterior|[uú]ltimo ciclo)/i.test(question)) return false;
     return true;
   }).slice(0, 2);
 }
@@ -212,7 +213,7 @@ export async function POST(request: NextRequest) {
       },
       system:
         "Eres Meta, la guía de oportunidades de MetaUTP. Interpretas la meta del estudiante y priorizas únicamente dentro de candidatos ya filtrados por reglas determinísticas. No decides elegibilidad, no inventas fechas, no infieres datos sensibles y no prometes admisión. Escribe español peruano claro, breve y profesional. Responde exclusivamente como un objeto JSON válido que cumpla el esquema solicitado.",
-      prompt: `Meta declarada: ${profile.goal}. Detalle libre: ${profile.goalNote || "sin detalle"}. Carrera: ${profile.career}. Devuelve JSON con exactamente estas claves: summary, priorityIds, followUpQuestions y nextAction. Escribe una guía breve y hasta 10 priorityIds, usando exclusivamente IDs de esta lista. Si hace falta un dato para entender la meta, incluye máximo 2 preguntas respetuosas; nunca preguntes directamente por fallecimiento, discapacidad o pobreza. Candidatos ordenados por reglas: ${JSON.stringify(
+      prompt: `Meta declarada: ${profile.goal}. Detalle libre: ${profile.goalNote || "sin detalle"}. Carrera: ${profile.career}. Datos académicos ya registrados: ciclo ${profile.cycle}, promedio acumulado ${profile.cumulativeGpa} y ${profile.approvedCredits} créditos aprobados; no vuelvas a pedir esos tres datos. Devuelve JSON con exactamente estas claves: summary, priorityIds, followUpQuestions y nextAction. Escribe una guía breve y hasta 10 priorityIds, usando exclusivamente IDs de esta lista. Si hace falta un dato para entender la meta, incluye máximo 2 preguntas respetuosas; nunca preguntes directamente por fallecimiento, discapacidad o pobreza. Candidatos ordenados por reglas: ${JSON.stringify(
         eligibleForGoal.map(({ opportunity, evaluation }) => ({
           id: opportunity.id,
           title: opportunity.title,
@@ -234,7 +235,8 @@ export async function POST(request: NextRequest) {
     const suggestedNextAction = output.nextAction ?? output.accion_siguiente ?? fallback.nextAction;
     const repeatsKnownData =
       (profile.facts.age18Plus !== "unknown" && /edad|18 a[nñ]os/i.test(suggestedNextAction)) ||
-      (profile.facts.failedLastPeriod !== "unknown" && /desaprobad|reprobad/i.test(suggestedNextAction));
+      (profile.facts.failedLastPeriod !== "unknown" && /desaprobad|reprobad/i.test(suggestedNextAction)) ||
+      (/promedio/i.test(suggestedNextAction) && !/(ciclo anterior|[uú]ltimo ciclo)/i.test(suggestedNextAction));
     const nextAction = repeatsKnownData ? fallback.nextAction : suggestedNextAction;
 
     return Response.json({
