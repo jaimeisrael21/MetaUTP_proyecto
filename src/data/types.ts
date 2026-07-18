@@ -44,6 +44,7 @@ export interface Opportunity {
   source: OpportunitySource;
   lastUpdated: string; // ISO "YYYY-MM-DD" — fecha en que se extrajo/confirmó el dato
   actionNote?: string; // siguiente acción concreta, ej. "Postula en Bienestar Universitario"
+  actionability?: "application" | "informational"; // informational = referencia útil, sin postulación individual
   featured?: boolean; // true para las 2-3 que se muestran como teaser en Bienvenida
 }
 
@@ -64,6 +65,7 @@ export interface StudentProfile {
   cumulativeGpa: number; // promedio ponderado acumulado, 0-20
   approvedCredits: number; // créditos aprobados acumulados
   courses: Course[]; // cursos del ciclo actual, para los simuladores
+  preferredCategories: OpportunityCategory[]; // intereses opcionales usados solo para jerarquizar
   onboarded: boolean; // true tras completar "Configurar ciclo"
 }
 
@@ -73,5 +75,6 @@ export const emptyProfile: StudentProfile = {
   cumulativeGpa: 0,
   approvedCredits: 0,
   courses: [],
+  preferredCategories: [],
   onboarded: false,
 };

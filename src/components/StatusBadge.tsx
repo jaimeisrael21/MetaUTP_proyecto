@@ -1,10 +1,13 @@
 import type { RequirementStatus } from "@/lib/matching";
-import { CheckCircleIcon, ClockIcon, HelpCircleIcon, XCircleIcon } from "./icons";
+import {
+  CheckCircleIcon,
+  ClockIcon,
+  HelpCircleIcon,
+  PencilIcon,
+  XCircleIcon,
+} from "./icons";
 
-// Principio de accesibilidad no negociable (perfil 3 — estudiante con
-// discapacidad visual): el estado NUNCA se comunica solo con color. Siempre
-// va ícono + color + texto juntos.
-
+// Ningún estado depende solo del color: siempre incluye icono y texto.
 const CONFIG: Record<
   RequirementStatus,
   { label: string; text: string; bg: string; icon: typeof CheckCircleIcon }
@@ -21,8 +24,14 @@ const CONFIG: Record<
     bg: "bg-status-close-soft",
     icon: ClockIcon,
   },
-  pending: {
-    label: "Pendiente de verificación",
+  needs_info: {
+    label: "Falta un dato tuyo",
+    text: "text-status-info",
+    bg: "bg-status-info-soft",
+    icon: PencilIcon,
+  },
+  official: {
+    label: "Validación oficial",
     text: "text-status-pending",
     bg: "bg-status-pending-soft",
     icon: HelpCircleIcon,
@@ -44,17 +53,17 @@ export function StatusBadge({
   label?: string;
   size?: "sm" | "md";
 }) {
-  const cfg = CONFIG[status];
-  const Icon = cfg.icon;
+  const config = CONFIG[status];
+  const Icon = config.icon;
   const padding = size === "sm" ? "px-2 py-1 text-xs" : "px-3 py-1.5 text-sm";
   const iconSize = size === "sm" ? 14 : 16;
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full font-medium ${cfg.bg} ${cfg.text} ${padding}`}
+      className={`inline-flex items-center gap-1.5 rounded-full font-medium ${config.bg} ${config.text} ${padding}`}
     >
       <Icon width={iconSize} height={iconSize} strokeWidth={2.5} />
-      {label ?? cfg.label}
+      {label ?? config.label}
     </span>
   );
 }

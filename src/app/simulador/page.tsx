@@ -35,7 +35,10 @@ function SimuladorContent() {
 
   useEffect(() => {
     if (contextRequirement?.threshold !== undefined) {
-      setTargetGpa(String(contextRequirement.threshold));
+      const frame = window.requestAnimationFrame(() => {
+        setTargetGpa(String(contextRequirement.threshold));
+      });
+      return () => window.cancelAnimationFrame(frame);
     }
   }, [contextRequirement]);
 

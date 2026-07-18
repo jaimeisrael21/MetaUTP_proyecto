@@ -24,11 +24,14 @@ export default function ConfigurarPage() {
   useEffect(() => {
     if (!profileHydrated) return;
     if (profile.onboarded) {
-      setCycle(profile.cycle);
-      setGpa(String(profile.cumulativeGpa));
-      setCredits(String(profile.approvedCredits));
+      const frame = window.requestAnimationFrame(() => {
+        setCycle(profile.cycle);
+        setGpa(String(profile.cumulativeGpa));
+        setCredits(String(profile.approvedCredits));
+      });
+      return () => window.cancelAnimationFrame(frame);
     }
-  }, [profileHydrated, profile]);
+  }, [profileHydrated, profile.onboarded, profile.cycle, profile.cumulativeGpa, profile.approvedCredits]);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -71,7 +74,15 @@ export default function ConfigurarPage() {
           intercambio o programa. No accedemos a UTPClass — todo lo escribes tú.
         </p>
 
-        <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+        <div className="mt-5 rounded-xl border border-border bg-white px-4 py-3">
+          <p className="text-sm font-semibold text-canvas-foreground">Tú controlas cómo cargar tus datos</p>
+          <p className="mt-1 text-xs leading-relaxed text-canvas-foreground/60">
+            Empieza con estos tres datos. En el Panel del ciclo podrás escribir tus cursos
+            manualmente o importar una captura del horario con OCR y revisar lo detectado.
+          </p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="mt-6 space-y-5">
           <div>
             <label htmlFor="cycle" className="text-sm font-medium text-canvas-foreground">
               Ciclo actual

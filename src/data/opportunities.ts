@@ -945,6 +945,7 @@ export const opportunities: Opportunity[] = [
       url: "https://info.utp.edu.pe/articulo/KA-01784",
     },
     lastUpdated: "2026-07-18",
+    actionability: "informational",
     actionNote:
       "No requiere ni permite postulación individual. Si tu curso participa de una clase espejo, tu docente te lo comunicará directamente.",
   },
@@ -1203,6 +1204,7 @@ export const opportunities: Opportunity[] = [
       url: "https://info.utp.edu.pe/articulo/KA-01872",
     },
     lastUpdated: "2026-07-18",
+    actionability: "informational",
     actionNote:
       "Consulta la herramienta interactiva en https://view.genially.com/61691579d0c1e70d9c38e1e7 (selecciona tu facultad y carrera) o escribe por WhatsApp al 960 252 970.",
   },

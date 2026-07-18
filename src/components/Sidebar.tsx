@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useSession } from "@/lib/store";
+import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import {
   BuildingIcon,
   CompassIcon,
@@ -75,7 +76,9 @@ export function Sidebar() {
           </div>
           <button
             type="button"
-            onClick={() => {
+            onClick={async () => {
+              const supabase = getSupabaseBrowserClient();
+              if (supabase) await supabase.auth.signOut();
               logout();
               router.push("/");
             }}

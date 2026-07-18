@@ -3,7 +3,8 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "MetaUTP",
-  description: "Simulador académico y orientador de oportunidades para estudiantes UTP.",
+  description:
+    "Orientador independiente que cruza datos académicos con oportunidades documentadas para estudiantes UTP.",
 };
 
 export default function RootLayout({
@@ -13,7 +14,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" className="h-full antialiased">
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="flex min-h-full flex-col">{children}</body>
     </html>
   );
 }

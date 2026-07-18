@@ -25,6 +25,8 @@
   --color-status-close-soft: #fdf1e0;
   --color-status-pending: #5b5347;
   --color-status-pending-soft: #ece7dd;
+  --color-status-info: #0f6f7a;
+  --color-status-info-soft: #e4f5f6;
   --color-status-unmet: #b91c3c;
   --color-status-unmet-soft: #fce8ec;
 
@@ -50,6 +52,8 @@
   --color-status-close-soft: var(--color-status-close-soft);
   --color-status-pending: var(--color-status-pending);
   --color-status-pending-soft: var(--color-status-pending-soft);
+  --color-status-info: var(--color-status-info);
+  --color-status-info-soft: var(--color-status-info-soft);
   --color-status-unmet: var(--color-status-unmet);
   --color-status-unmet-soft: var(--color-status-unmet-soft);
   --color-border: var(--color-border);
@@ -66,4 +70,9 @@ body {
 
 * {
   border-color: var(--color-border);
+}
+
+:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--color-primary) 35%, transparent);
+  outline-offset: 3px;
 }

@@ -6,11 +6,13 @@
 // Supabase), solo hay que reescribir las funciones de este archivo — el resto
 // de la app llama a estas funciones, nunca a localStorage directamente.
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useMemo, useSyncExternalStore } from "react";
 import { emptyProfile, type StudentProfile } from "@/data/types";
+import { persistProfileForAuthenticatedUser } from "@/lib/supabase/profile-sync";
 
 const PROFILE_KEY = "metautp:profile";
 const SESSION_KEY = "metautp:session";
+const STORE_EVENT = "metautp:storage-change";
 
 export interface Session {
   loggedIn: boolean;
@@ -35,6 +37,7 @@ function writeJson<T>(key: string, value: T) {
   if (typeof window === "undefined") return;
   try {
     window.localStorage.setItem(key, JSON.stringify(value));
+    window.dispatchEvent(new CustomEvent(STORE_EVENT, { detail: key }));
   } catch {
     // almacenamiento no disponible (modo privado, cuota llena, etc.) — se
     // ignora silenciosamente, la app sigue funcionando en memoria durante la
@@ -48,6 +51,9 @@ export function getProfile(): StudentProfile {
 
 export function saveProfile(profile: StudentProfile) {
   writeJson(PROFILE_KEY, profile);
+  void persistProfileForAuthenticatedUser(profile).catch(() => {
+    // La copia local mantiene el recorrido disponible si la red o Supabase fallan.
+  });
 }
 
 export function updateProfile(patch: Partial<StudentProfile>): StudentProfile {
@@ -59,6 +65,7 @@ export function updateProfile(patch: Partial<StudentProfile>): StudentProfile {
 export function clearProfile() {
   if (typeof window === "undefined") return;
   window.localStorage.removeItem(PROFILE_KEY);
+  window.dispatchEvent(new CustomEvent(STORE_EVENT, { detail: PROFILE_KEY }));
 }
 
 export function getSession(): Session {
@@ -72,6 +79,64 @@ export function setSession(session: Session) {
 export function clearSession() {
   if (typeof window === "undefined") return;
   window.localStorage.removeItem(SESSION_KEY);
+  window.dispatchEvent(new CustomEvent(STORE_EVENT, { detail: SESSION_KEY }));
+}
+
+function subscribeToKey(key: string, onStoreChange: () => void) {
+  function handleStorage(event: StorageEvent) {
+    if (event.key === key) onStoreChange();
+  }
+  function handleLocalChange(event: Event) {
+    if ((event as CustomEvent<string>).detail === key) onStoreChange();
+  }
+
+  window.addEventListener("storage", handleStorage);
+  window.addEventListener(STORE_EVENT, handleLocalChange);
+  return () => {
+    window.removeEventListener("storage", handleStorage);
+    window.removeEventListener(STORE_EVENT, handleLocalChange);
+  };
+}
+
+function profileSnapshot() {
+  return window.localStorage.getItem(PROFILE_KEY);
+}
+
+function sessionSnapshot() {
+  return window.localStorage.getItem(SESSION_KEY);
+}
+
+function serverSnapshot() {
+  return null;
+}
+
+function subscribeProfile(onStoreChange: () => void) {
+  return subscribeToKey(PROFILE_KEY, onStoreChange);
+}
+
+function subscribeSession(onStoreChange: () => void) {
+  return subscribeToKey(SESSION_KEY, onStoreChange);
+}
+
+function subscribeHydration() {
+  return () => undefined;
+}
+
+function clientHydrated() {
+  return true;
+}
+
+function serverHydrated() {
+  return false;
+}
+
+function parseSnapshot<T>(raw: string | null, fallback: T): T {
+  if (!raw) return fallback;
+  try {
+    return { ...fallback, ...JSON.parse(raw) };
+  } catch {
+    return fallback;
+  }
 }
 
 /**
@@ -80,43 +145,30 @@ export function clearSession() {
  * del primer render en cliente) para evitar mismatches de hidratación.
  */
 export function useProfile() {
-  const [profile, setProfile] = useState<StudentProfile>(emptyProfile);
-  const [hydrated, setHydrated] = useState(false);
-
-  useEffect(() => {
-    setProfile(getProfile());
-    setHydrated(true);
-  }, []);
+  const rawProfile = useSyncExternalStore(subscribeProfile, profileSnapshot, serverSnapshot);
+  const hydrated = useSyncExternalStore(subscribeHydration, clientHydrated, serverHydrated);
+  const profile = useMemo(() => parseSnapshot(rawProfile, emptyProfile), [rawProfile]);
 
   const update = useCallback((patch: Partial<StudentProfile>) => {
-    setProfile((prev) => {
-      const next = { ...prev, ...patch };
-      saveProfile(next);
-      return next;
-    });
+    const next = { ...getProfile(), ...patch };
+    saveProfile(next);
   }, []);
 
   return { profile, update, hydrated };
 }
 
 export function useSession() {
-  const [session, setSessionState] = useState<Session>(emptySession);
-  const [hydrated, setHydrated] = useState(false);
-
-  useEffect(() => {
-    setSessionState(getSession());
-    setHydrated(true);
-  }, []);
+  const rawSession = useSyncExternalStore(subscribeSession, sessionSnapshot, serverSnapshot);
+  const hydrated = useSyncExternalStore(subscribeHydration, clientHydrated, serverHydrated);
+  const session = useMemo(() => parseSnapshot(rawSession, emptySession), [rawSession]);
 
   const login = useCallback((data: { name?: string; email?: string }) => {
     const next: Session = { loggedIn: true, ...data };
     setSession(next);
-    setSessionState(next);
   }, []);
 
   const logout = useCallback(() => {
     clearSession();
-    setSessionState(emptySession);
   }, []);
 
   return { session, login, logout, hydrated };
