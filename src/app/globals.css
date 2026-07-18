@@ -381,7 +381,7 @@ button:disabled {
   }
 
   .opportunity-card__evaluation {
-    @apply mt-2.5 flex min-h-[72px] flex-col gap-2 rounded-xl border border-border bg-canvas/45 p-2.5;
+    @apply mt-2.5 flex min-h-[130px] flex-col gap-2 rounded-xl border border-border bg-canvas/45 p-2.5;
   }
 
   .opportunity-card__footer {
@@ -438,6 +438,24 @@ button:disabled {
   .requirement-progress > span {
     @apply block h-full rounded-full bg-status-met transition-all duration-500;
   }
+
+  .requirement-list {
+    @apply grid gap-1.5;
+  }
+
+  .requirement-row {
+    @apply flex min-w-0 items-center gap-2 text-[13px] font-semibold leading-5 text-canvas-foreground/70;
+  }
+
+  .requirement-row__icon {
+    @apply flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-white;
+  }
+
+  .requirement-row--met .requirement-row__icon { @apply bg-status-met; box-shadow: 0 0 14px rgba(7, 139, 69, 0.32); }
+  .requirement-row--close .requirement-row__icon { @apply bg-status-close; box-shadow: 0 0 14px rgba(214, 106, 0, 0.32); }
+  .requirement-row--info .requirement-row__icon { @apply bg-status-info; box-shadow: 0 0 14px rgba(8, 127, 156, 0.28); }
+  .requirement-row--official .requirement-row__icon { @apply bg-status-pending; box-shadow: 0 0 14px rgba(91, 83, 71, 0.24); }
+  .requirement-row--unmet .requirement-row__icon { @apply bg-status-close; box-shadow: 0 0 14px rgba(214, 106, 0, 0.28); }
 
   .sidebar-brand__mark {
     transition: transform 220ms ease, box-shadow 220ms ease;

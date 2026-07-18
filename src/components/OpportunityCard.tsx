@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Opportunity } from "@/data/types";
-import type { OpportunityEvaluation, OpportunityMatchState } from "@/lib/matching";
+import type { OpportunityEvaluation, OpportunityMatchState, RequirementStatus } from "@/lib/matching";
 import {
   ArrowRightIcon,
   CheckCircleIcon,
@@ -31,6 +31,25 @@ const MATCH_STATE: Record<
   general_catalog: { label: "Catálogo general", style: "match-pill--general bg-canvas-soft text-canvas-foreground/62", icon: HelpCircleIcon },
 };
 
+const REQUIREMENT_STATE: Record<RequirementStatus, { label: string; style: string; icon: typeof CheckCircleIcon }> = {
+  met: { label: "Cumplido", style: "requirement-row--met", icon: CheckCircleIcon },
+  close: { label: "Cercano", style: "requirement-row--close", icon: ClockIcon },
+  needs_info: { label: "Completa un dato", style: "requirement-row--info", icon: PencilIcon },
+  official: { label: "Confirmación oficial", style: "requirement-row--official", icon: HelpCircleIcon },
+  unmet: { label: "Aún no cumplido", style: "requirement-row--unmet", icon: XCircleIcon },
+};
+
+function comparableWords(value: string) {
+  return new Set(value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().split(/[^a-z0-9]+/).filter((word) => word.length >= 5));
+}
+
+function labelsOverlap(first: string, second: string) {
+  const firstWords = comparableWords(first);
+  const secondWords = comparableWords(second);
+  const overlap = [...firstWords].filter((word) => secondWords.has(word)).length;
+  return overlap > 0 && overlap / Math.min(firstWords.size, secondWords.size) >= 0.34;
+}
+
 export function OpportunityCard({
   opportunity,
   evaluation,
@@ -49,6 +68,19 @@ export function OpportunityCard({
   const MatchIcon = match?.icon;
   const confirmed = evaluation?.confirmedCount ?? 0;
   const total = evaluation?.comparisonTotal ?? 0;
+  const evaluatedRows = evaluation?.evaluations.map((item) => ({ label: item.requirement.description, status: item.status })) ?? [];
+  const requirementRows = evaluation
+    ? [
+        ...evaluatedRows,
+        ...evaluation.gateEvaluations.filter((item) => !evaluatedRows.some((row) => labelsOverlap(row.label, item.gate.label))).map((item) => ({
+          label: item.gate.label,
+          status: (item.result === "met" ? "met" : item.result === "unmet" ? "unmet" : item.gate.kind === "unprofiled" ? "official" : "needs_info") as RequirementStatus,
+        })),
+      ]
+        .filter((item, index, all) => all.findIndex((candidate) => candidate.label === item.label) === index)
+        .sort((first, second) => ({ unmet: 0, close: 1, needs_info: 2, official: 3, met: 4 })[first.status] - ({ unmet: 0, close: 1, needs_info: 2, official: 3, met: 4 })[second.status])
+        .slice(0, 4)
+    : [];
 
   return (
     <Link
@@ -96,15 +128,13 @@ export function OpportunityCard({
               <div className="requirement-progress" aria-label={`${confirmed} de ${total} requisitos confirmados`}>
                 <span style={{ width: `${total > 0 ? Math.round((confirmed / total) * 100) : 0}%` }} />
               </div>
-              <div className="min-h-6">
-                {evaluation.primaryGap ? (
-                  <p className="line-clamp-1 text-[13px] leading-5 text-canvas-foreground/65">
-                    <strong className="text-canvas-foreground/78">Punto clave:</strong> {evaluation.primaryGap}
-                  </p>
-                ) : (
-                  <p className="line-clamp-1 text-[13px] font-semibold text-status-met">No detectamos bloqueos con tus datos.</p>
-                )}
-              </div>
+              <ul className="requirement-list" aria-label="Estado de requisitos principales">
+                {requirementRows.map((item) => {
+                  const visual = REQUIREMENT_STATE[item.status];
+                  const Icon = visual.icon;
+                  return <li key={`${item.status}-${item.label}`} className={`requirement-row ${visual.style}`} title={`${visual.label}: ${item.label}`}><span className="requirement-row__icon" aria-hidden="true"><Icon width={16} height={16} strokeWidth={2.7} /></span><span className="line-clamp-1">{item.label}</span></li>;
+                })}
+              </ul>
             </>
           ) : (
             <p className="rounded-xl bg-canvas-soft px-3.5 py-3 text-sm font-semibold text-canvas-foreground/62">

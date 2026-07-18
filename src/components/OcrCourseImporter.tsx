@@ -1,11 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import type { Course } from "@/data/types";
+import type { AcademicMetrics, AcademicRank, Course, TriState } from "@/data/types";
 import { AlertIcon, CheckCircleIcon, ScanTextIcon, TrashIcon, UploadIcon } from "./icons";
 
 interface OcrCourseImporterProps {
-  onImport: (courses: Course[]) => void;
+  onImport: (courses: Course[], academic: OcrAcademicImport) => void;
+}
+
+export interface OcrAcademicImport {
+  metrics: Partial<AcademicMetrics>;
+  cumulativeGpa?: number;
+  approvedCredits?: number;
+  academicRank?: AcademicRank;
+  englishIVPassed?: TriState;
+  documentType: "schedule" | "grades" | "academic_summary";
 }
 
 type OcrPhase = "idle" | "processing" | "review" | "error";
@@ -53,6 +62,7 @@ function extractCandidateNames(text: string): string[] {
       if (!/[a-záéíóúñ]{3}/i.test(line)) return false;
       if (/https?:\/\/|@/.test(line)) return false;
       if (/\b(?:horario|r[eé]cord|malla)\b/i.test(line)) return false;
+      if (/^(?:metautp|periodo acad[eé]mico|periodo anterior|estudiante:|curso\s+cr[eé]ditos|cr[eé]ditos del|cr[eé]ditos aprobados|horas semanales|promedio|datos de prueba)/i.test(line)) return false;
       if (IGNORED_LABELS.has(key)) return false;
       if (/^(?:\d[\d\s./-]*)$/.test(line)) return false;
       if (seen.has(key)) return false;
@@ -62,13 +72,71 @@ function extractCandidateNames(text: string): string[] {
     .slice(0, 10);
 }
 
-function candidatesFromText(text: string): Course[] {
+function candidatesFromText(text: string, documentType: OcrAcademicImport["documentType"]): Course[] {
+  const tableRows = text
+    .split(/\r?\n/)
+    .map((line) => line.replace(/\b1V\b/g, "IV").trim())
+    .flatMap<Course>((line) => {
+      const match = line.match(/^(.+?)\s+(\d{1,2}(?:[.,]\d)?)\s+(\d{1,2}(?:[.,]\d)?)$/);
+      if (!match || !/[a-záéíóúñ]{3}/i.test(match[1]) || /^(?:curso|promedio|créditos|horas|estudiante|periodo)/i.test(match[1])) return [];
+      const credits = Number(match[2].replace(",", "."));
+      const finalValue = Number(match[3].replace(",", "."));
+      return [{
+        id: crypto.randomUUID(),
+        name: match[1].trim(),
+        credits,
+        grade: documentType === "grades" ? finalValue : 0,
+        period: documentType === "grades" ? "previous" as const : "current" as const,
+        weeklyHours: documentType === "schedule" ? finalValue : 0,
+        source: "ocr" as const,
+      }];
+    });
+  if (tableRows.length > 0) return tableRows.slice(0, 10);
+  if (documentType === "academic_summary") return [];
   return extractCandidateNames(text).map((name) => ({
     id: crypto.randomUUID(),
     name,
     credits: 0,
     grade: 0,
+    period: "current",
+    weeklyHours: 0,
+    source: "ocr",
   }));
+}
+
+function detectedNumber(text: string, patterns: RegExp[]) {
+  for (const pattern of patterns) {
+    const match = text.match(pattern);
+    if (match?.[1]) {
+      const value = Number(match[1].replace(",", "."));
+      if (Number.isFinite(value)) return value;
+    }
+  }
+  return undefined;
+}
+
+function extractAcademicImport(text: string, documentType: OcrAcademicImport["documentType"]): OcrAcademicImport {
+  const plain = text.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const lastPeriodGpa = detectedNumber(plain, [/promedio(?: ponderado)?(?: del)? periodo(?: anterior)?\s*[:\-]?\s*(\d{1,2}(?:[.,]\d{1,2})?)/i]);
+  const cumulativeGpa = detectedNumber(plain, [/promedio(?: ponderado)? acumulado\s*[:\-]?\s*(\d{1,2}(?:[.,]\d{1,2})?)/i]);
+  const approvedCredits = detectedNumber(plain, [/creditos aprobados(?: acumulados)?\s*[:\-]?\s*(\d{1,3}(?:[.,]\d)?)/i]);
+  const currentPeriodCredits = detectedNumber(plain, [/creditos(?: del)? periodo actual\s*[:\-]?\s*(\d{1,2}(?:[.,]\d)?)/i]);
+  const weeklyHoursCurrent = detectedNumber(plain, [/horas semanales(?: actuales)?\s*[:\-]?\s*(\d{1,2}(?:[.,]\d)?)/i]);
+  const lower = plain.toLowerCase();
+  const academicRank: AcademicRank | undefined = lower.includes("decimo superior") ? "top_tenth" : lower.includes("quinto superior") ? "top_fifth" : lower.includes("tercio superior") ? "top_third" : undefined;
+  const englishIVPassed: TriState | undefined = /ingles iv\s*(?:aprobado|convalidado)/i.test(plain) ? "yes" : undefined;
+  return {
+    metrics: {
+      ...(lastPeriodGpa !== undefined ? { lastPeriodGpa } : {}),
+      ...(currentPeriodCredits !== undefined ? { currentPeriodCredits } : {}),
+      ...(weeklyHoursCurrent !== undefined ? { weeklyHoursCurrent } : {}),
+    },
+    cumulativeGpa,
+    approvedCredits,
+    academicRank,
+    englishIVPassed,
+    documentType,
+  };
 }
 
 export function OcrCourseImporter({ onImport }: OcrCourseImporterProps) {
@@ -79,6 +147,8 @@ export function OcrCourseImporter({ onImport }: OcrCourseImporterProps) {
   const [rawText, setRawText] = useState("");
   const [candidates, setCandidates] = useState<Course[]>([]);
   const [error, setError] = useState("");
+  const [documentType, setDocumentType] = useState<OcrAcademicImport["documentType"]>("schedule");
+  const [academicImport, setAcademicImport] = useState<OcrAcademicImport>(() => extractAcademicImport("", "schedule"));
 
   const progressLabel = `${Math.round(progress * 100)}%`;
 
@@ -96,7 +166,7 @@ export function OcrCourseImporter({ onImport }: OcrCourseImporterProps) {
     if (!nextFile.type.startsWith("image/")) {
       setFile(null);
       setPhase("error");
-      setError("Por ahora el OCR acepta capturas JPG, PNG o WEBP. Para un PDF, toma una captura de la página del horario.");
+      setError("Por ahora el OCR acepta imágenes JPG, PNG o WEBP. Para un PDF, toma una captura de la página.");
       return;
     }
     if (nextFile.size > 10 * 1024 * 1024) {
@@ -129,10 +199,12 @@ export function OcrCourseImporter({ onImport }: OcrCourseImporterProps) {
       });
       const result = await worker.recognize(file);
       const detectedText = result.data.text.trim();
-      const detectedCourses = candidatesFromText(detectedText);
+      const detectedCourses = candidatesFromText(detectedText, documentType);
+      const detectedAcademic = extractAcademicImport(detectedText, documentType);
 
       setRawText(detectedText);
       setCandidates(detectedCourses);
+      setAcademicImport(detectedAcademic);
       setProgress(1);
       setPhase("review");
       setStatusText("Lectura terminada");
@@ -147,7 +219,8 @@ export function OcrCourseImporter({ onImport }: OcrCourseImporterProps) {
   }
 
   function detectAgain() {
-    setCandidates(candidatesFromText(rawText));
+    setCandidates(candidatesFromText(rawText, documentType));
+    setAcademicImport(extractAcademicImport(rawText, documentType));
   }
 
   function updateCandidate(id: string, patch: Partial<Course>) {
@@ -160,11 +233,12 @@ export function OcrCourseImporter({ onImport }: OcrCourseImporterProps) {
 
   function confirmImport() {
     const validCourses = candidates.filter((course) => course.name.trim());
-    if (validCourses.length === 0) {
-      setError("Revisa el texto detectado y deja al menos un curso antes de importarlo.");
+    const hasAcademicData = Object.keys(academicImport.metrics).length > 0 || academicImport.cumulativeGpa !== undefined || academicImport.approvedCredits !== undefined || academicImport.academicRank !== undefined || academicImport.englishIVPassed !== undefined;
+    if (validCourses.length === 0 && !hasAcademicData) {
+      setError("No encontramos cursos ni métricas académicas. Revisa el texto antes de importarlo.");
       return;
     }
-    onImport(validCourses);
+    onImport(validCourses, academicImport);
     setFile(null);
     setRawText("");
     setCandidates([]);
@@ -192,6 +266,7 @@ export function OcrCourseImporter({ onImport }: OcrCourseImporterProps) {
       </div>
 
       <div className="mt-5 rounded-xl border border-dashed border-border-strong bg-canvas-soft p-4">
+        <label className="mb-3 block"><span className="field-label">Tipo de captura</span><select value={documentType} onChange={(event) => setDocumentType(event.target.value as OcrAcademicImport["documentType"])} className="field-control cursor-pointer"><option value="schedule">Horario o matrícula</option><option value="grades">Notas del periodo anterior</option><option value="academic_summary">Resumen o constancia académica</option></select></label>
         <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg bg-white px-4 py-3 text-sm font-semibold text-canvas-foreground shadow-sm transition-colors hover:text-primary focus-within:ring-2 focus-within:ring-primary/30">
           <UploadIcon width={17} height={17} />
           {file ? "Cambiar captura" : "Seleccionar captura del horario"}
@@ -266,6 +341,19 @@ export function OcrCourseImporter({ onImport }: OcrCourseImporterProps) {
             >
               Volver a detectar cursos desde este texto
             </button>
+          </div>
+
+          <div className="rounded-xl border border-status-info/20 bg-status-info-soft p-4">
+            <h3 className="text-sm font-bold text-status-info">Datos académicos propuestos</h3>
+            <p className="mt-1 text-xs leading-5 text-canvas-foreground/60">Se incorporarán solo después de pulsar el botón de confirmación. Puedes corregirlos luego en el resumen académico.</p>
+            <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold">
+              {academicImport.metrics.lastPeriodGpa !== undefined && <span className="rounded-full bg-white px-3 py-1.5">Periodo anterior: {academicImport.metrics.lastPeriodGpa}</span>}
+              {academicImport.cumulativeGpa !== undefined && <span className="rounded-full bg-white px-3 py-1.5">Acumulado: {academicImport.cumulativeGpa}</span>}
+              {academicImport.approvedCredits !== undefined && <span className="rounded-full bg-white px-3 py-1.5">Créditos aprobados: {academicImport.approvedCredits}</span>}
+              {academicImport.metrics.weeklyHoursCurrent !== undefined && <span className="rounded-full bg-white px-3 py-1.5">Horas semanales: {academicImport.metrics.weeklyHoursCurrent}</span>}
+              {academicImport.academicRank && <span className="rounded-full bg-white px-3 py-1.5">Posición académica detectada</span>}
+              {Object.keys(academicImport.metrics).length === 0 && academicImport.cumulativeGpa === undefined && academicImport.approvedCredits === undefined && !academicImport.academicRank && <span className="text-canvas-foreground/55">No se detectaron métricas en esta captura.</span>}
+            </div>
           </div>
 
           <div>

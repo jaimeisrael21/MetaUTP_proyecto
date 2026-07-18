@@ -12,6 +12,7 @@ import {
 } from "@/lib/store";
 import { DEMO_PROFILE } from "@/data/demo-profile";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { loadProfileForAuthenticatedUser } from "@/lib/supabase/profile-sync";
 import { CompassIcon, GaugeIcon, ShieldIcon } from "@/components/icons";
 
 function friendlyAuthError(caught: unknown) {
@@ -62,13 +63,16 @@ export default function LoginPage() {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
-  function enterProduct(account: { name: string; email: string }) {
+  async function enterProduct(account: { name: string; email: string }) {
     const previous = getSession();
     if (previous.email && previous.email !== account.email) clearProfile();
     login(account);
-    const profile = getProfile();
+    const remoteProfile = await loadProfileForAuthenticatedUser().catch(() => null);
+    if (remoteProfile) saveProfile(remoteProfile);
+    const profile = remoteProfile ?? getProfile();
     if (!profile.onboarded) router.push("/configurar");
     else if (!profile.academicSetupComplete) router.push("/panel?setup=1");
+    else if (!profile.profileRefined) router.push("/personalizar");
     else router.push("/oportunidades");
   }
 
@@ -118,7 +122,7 @@ export default function LoginPage() {
           );
           return;
         }
-        enterProduct({ name: cleanName, email: cleanEmail });
+        await enterProduct({ name: cleanName, email: cleanEmail });
         return;
       }
 
@@ -127,7 +131,7 @@ export default function LoginPage() {
         password,
       });
       if (authError) throw authError;
-      enterProduct({
+      await enterProduct({
         name:
           (data.user.user_metadata.full_name as string | undefined) ??
           cleanEmail.split("@")[0],

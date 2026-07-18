@@ -7,7 +7,13 @@
 // de la app llama a estas funciones, nunca a localStorage directamente.
 
 import { useCallback, useMemo, useSyncExternalStore } from "react";
-import { emptyProfile, emptyProfileFacts, type StudentProfile } from "@/data/types";
+import {
+  emptyAcademicMetrics,
+  emptyDataProvenance,
+  emptyProfile,
+  emptyProfileFacts,
+  type StudentProfile,
+} from "@/data/types";
 import { persistProfileForAuthenticatedUser } from "@/lib/supabase/profile-sync";
 
 const PROFILE_KEY = "metautp:profile";
@@ -144,7 +150,14 @@ function normalizeProfile(profile: StudentProfile): StudentProfile {
     ...emptyProfile,
     ...profile,
     preferredCategories: profile.preferredCategories ?? [],
-    courses: profile.courses ?? [],
+    courses: (profile.courses ?? []).map((course) => ({
+      ...course,
+      period: course.period ?? "current",
+      weeklyHours: course.weeklyHours ?? 0,
+      source: course.source ?? "manual",
+    })),
+    academicMetrics: { ...emptyAcademicMetrics, ...(profile.academicMetrics ?? {}) },
+    dataProvenance: { ...emptyDataProvenance, ...(profile.dataProvenance ?? {}) },
     facts: { ...emptyProfileFacts, ...(profile.facts ?? {}) },
   };
 }

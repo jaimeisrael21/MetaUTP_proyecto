@@ -7,7 +7,7 @@ import { AppShell } from "@/components/AppShell";
 import { StatusBadge } from "@/components/StatusBadge";
 import { AiOpportunityGuide } from "@/components/AiOpportunityGuide";
 import { opportunities } from "@/data/opportunities";
-import { evaluateOpportunity } from "@/lib/matching";
+import { evaluateOpportunity, isPersonalizedOpportunityVisible } from "@/lib/matching";
 import type { OpportunityMatchState } from "@/lib/matching";
 import { useProfile, useSession } from "@/lib/store";
 import {
@@ -48,12 +48,15 @@ export default function OportunidadDetailPage() {
     if (!session.loggedIn) router.replace("/");
     else if (!profile.onboarded) router.replace("/configurar");
     else if (!profile.academicSetupComplete) router.replace("/panel?setup=1");
-  }, [sessionHydrated, profileHydrated, session.loggedIn, profile.onboarded, profile.academicSetupComplete, router]);
+    else if (!profile.profileRefined) router.replace("/personalizar");
+    else if (opportunity && !isPersonalizedOpportunityVisible(evaluateOpportunity(opportunity, profile))) router.replace("/oportunidades");
+  }, [sessionHydrated, profileHydrated, session.loggedIn, profile, opportunity, router]);
 
   if (!opportunity) notFound();
-  if (!profileHydrated || !profile.onboarded || !profile.academicSetupComplete) return null;
+  if (!profileHydrated || !profile.onboarded || !profile.academicSetupComplete || !profile.profileRefined) return null;
 
   const evaluation = evaluateOpportunity(opportunity, profile);
+  if (!isPersonalizedOpportunityVisible(evaluation)) return null;
   const informational = opportunity.actionability === "informational";
   const match = MATCH_LABEL[evaluation.matchState];
   const totalSignals = evaluation.comparisonTotal;
@@ -147,7 +150,7 @@ export default function OportunidadDetailPage() {
           <section className="mt-8">
             <div className="flex flex-wrap items-end justify-between gap-2">
               <h2 className="text-xl font-bold text-canvas-foreground">Condiciones esenciales de tu perfil</h2>
-              <Link href="/configurar" className="text-sm font-bold text-primary hover:underline">Editar datos</Link>
+              <Link href="/configuracion" className="text-sm font-bold text-primary hover:underline">Editar datos</Link>
             </div>
             <div className="mt-3 grid gap-3 md:grid-cols-2">
               {evaluation.gateEvaluations.map(({ gate, result }) => (
@@ -212,12 +215,8 @@ export default function OportunidadDetailPage() {
         {!informational && (
           <AiOpportunityGuide
             opportunityId={opportunity.id}
-            profile={{
-              cycle: profile.cycle,
-              cumulativeGpa: profile.cumulativeGpa,
-              approvedCredits: profile.approvedCredits,
-              facts: profile.facts,
-            }}
+            windowLabel={evaluation.window.label}
+            signals={evaluation.evaluations.map((item) => ({ requirement: item.requirement.description, status: item.status, detail: item.detail }))}
           />
         )}
 

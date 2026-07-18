@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="780" viewBox="0 0 1200 780">
+  <rect width="1200" height="780" fill="#faf7f2"/>
+  <rect x="45" y="40" width="1110" height="700" rx="28" fill="white" stroke="#ded4c7" stroke-width="3"/>
+  <rect x="45" y="40" width="1110" height="95" rx="28" fill="#17130f"/>
+  <text x="85" y="93" font-family="Arial" font-size="30" font-weight="700" fill="white">MetaUTP · Notas de demostración</text>
+  <text x="85" y="120" font-family="Arial" font-size="18" fill="#e4dcd2">Periodo anterior 2025-2</text>
+  <rect x="735" y="61" width="375" height="51" rx="14" fill="#c51f46"/>
+  <text x="922" y="93" text-anchor="middle" font-family="Arial" font-size="18" font-weight="700" fill="white">DATOS DE PRUEBA · NO OFICIAL</text>
+  <text x="85" y="185" font-family="Arial" font-size="24" font-weight="700" fill="#211b16">Estudiante: Jaime Aramburú</text>
+  <g font-family="Arial" font-size="21" fill="#322a24">
+    <text x="85" y="250" font-weight="700">Curso</text><text x="720" y="250" font-weight="700">Créditos</text><text x="960" y="250" font-weight="700">Nota final</text>
+    <path d="M80 270H1120" stroke="#ded4c7" stroke-width="2"/>
+    <text x="85" y="320">Base de Datos</text><text x="750" y="320">4</text><text x="1000" y="320">16</text>
+    <text x="85" y="390">Redes y Comunicaciones</text><text x="750" y="390">4</text><text x="1000" y="390">15</text>
+    <text x="85" y="460">Diseño de Interfaces</text><text x="750" y="460">3</text><text x="1000" y="460">17</text>
+    <text x="85" y="530">Estadística Aplicada</text><text x="750" y="530">3</text><text x="1000" y="530">14</text>
+  </g>
+  <rect x="80" y="590" width="1040" height="100" rx="18" fill="#fff3e3"/>
+  <text x="110" y="635" font-family="Arial" font-size="24" font-weight="700" fill="#a85400">Promedio del periodo anterior: 15.5</text>
+  <text x="110" y="670" font-family="Arial" font-size="20" fill="#6e5137">Cursos desaprobados: 0</text>
+</svg>

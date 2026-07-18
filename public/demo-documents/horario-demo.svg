@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="780" viewBox="0 0 1200 780">
+  <rect width="1200" height="780" fill="#faf7f2"/>
+  <rect x="45" y="40" width="1110" height="700" rx="28" fill="white" stroke="#ded4c7" stroke-width="3"/>
+  <rect x="45" y="40" width="1110" height="95" rx="28" fill="#17130f"/>
+  <text x="85" y="93" font-family="Arial" font-size="30" font-weight="700" fill="white">MetaUTP · Horario de demostración</text>
+  <text x="85" y="120" font-family="Arial" font-size="18" fill="#e4dcd2">Periodo académico 2026-1</text>
+  <rect x="735" y="61" width="375" height="51" rx="14" fill="#c51f46"/>
+  <text x="922" y="93" text-anchor="middle" font-family="Arial" font-size="18" font-weight="700" fill="white">DATOS DE PRUEBA · NO OFICIAL</text>
+  <text x="85" y="185" font-family="Arial" font-size="24" font-weight="700" fill="#211b16">Estudiante: Jaime Aramburú · Ciclo 7</text>
+  <g font-family="Arial" font-size="20" fill="#322a24">
+    <text x="85" y="245" font-weight="700">Curso</text><text x="720" y="245" font-weight="700">Créditos</text><text x="920" y="245" font-weight="700">Horas semanales</text>
+    <path d="M80 265H1120" stroke="#ded4c7" stroke-width="2"/>
+    <text x="85" y="310">Arquitectura de Software</text><text x="740" y="310">4</text><text x="990" y="310">5</text>
+    <text x="85" y="375">Gestión de Proyectos</text><text x="740" y="375">3</text><text x="990" y="375">4</text>
+    <text x="85" y="440">Inteligencia Artificial</text><text x="740" y="440">4</text><text x="990" y="440">5</text>
+    <text x="85" y="505">Inglés IV</text><text x="740" y="505">3</text><text x="990" y="505">4</text>
+    <text x="85" y="570">Investigación Aplicada</text><text x="740" y="570">4</text><text x="990" y="570">4</text>
+  </g>
+  <rect x="80" y="610" width="1040" height="80" rx="18" fill="#e5f8ec"/>
+  <text x="110" y="645" font-family="Arial" font-size="21" font-weight="700" fill="#087a3c">Créditos del periodo actual: 18</text>
+  <text x="110" y="676" font-family="Arial" font-size="21" font-weight="700" fill="#087a3c">Horas semanales actuales: 22</text>
+</svg>

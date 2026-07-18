@@ -14,6 +14,7 @@ export default function BienvenidaPage() {
     if (!session.loggedIn) router.replace("/");
     else if (!profile.onboarded) router.replace("/configurar");
     else if (!profile.academicSetupComplete) router.replace("/panel?setup=1");
+    else if (!profile.profileRefined) router.replace("/personalizar");
     else router.replace("/oportunidades");
   }, [
     sessionHydrated,
@@ -21,6 +22,7 @@ export default function BienvenidaPage() {
     session.loggedIn,
     profile.onboarded,
     profile.academicSetupComplete,
+    profile.profileRefined,
     router,
   ]);
 

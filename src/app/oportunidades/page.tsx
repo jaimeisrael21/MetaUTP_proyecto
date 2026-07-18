@@ -16,7 +16,7 @@ import { OpportunityCard } from "@/components/OpportunityCard";
 import { CURRENT_ACADEMIC_PERIOD } from "@/data/academic-period";
 import { opportunities } from "@/data/opportunities";
 import type { OpportunityCategory } from "@/data/types";
-import { evaluateOpportunity, rankOpportunity } from "@/lib/matching";
+import { evaluateOpportunity, isPersonalizedOpportunityVisible, rankOpportunity } from "@/lib/matching";
 import { useProfile, useSession } from "@/lib/store";
 
 const CATEGORIES: (OpportunityCategory | "Todas")[] = [
@@ -40,12 +40,14 @@ export default function OportunidadesPage() {
     if (!session.loggedIn) router.replace("/");
     else if (!profile.onboarded) router.replace("/configurar");
     else if (!profile.academicSetupComplete) router.replace("/panel?setup=1");
+    else if (!profile.profileRefined) router.replace("/personalizar");
   }, [
     sessionHydrated,
     profileHydrated,
     session.loggedIn,
     profile.onboarded,
     profile.academicSetupComplete,
+    profile.profileRefined,
     router,
   ]);
 
@@ -63,25 +65,30 @@ export default function OportunidadesPage() {
     [profile]
   );
 
+  const personalized = useMemo(
+    () => evaluatedAll.filter(({ evaluation }) => isPersonalizedOpportunityVisible(evaluation)),
+    [evaluatedAll]
+  );
+
   const orderedOpportunities = useMemo(() => {
-    return evaluatedAll
+    return personalized
       .filter(({ opportunity }) => category === "Todas" || opportunity.category === category)
       .sort((first, second) => {
         return second.ranking.score - first.ranking.score || first.catalogIndex - second.catalogIndex;
       });
-  }, [category, evaluatedAll]);
+  }, [category, personalized]);
 
   const totalPages = Math.max(1, Math.ceil(orderedOpportunities.length / PAGE_SIZE));
   const pageItems = orderedOpportunities.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const summary = useMemo(
     () => ({
-      recommended: evaluatedAll.filter(({ evaluation }) => evaluation.matchState === "recommended").length,
-      close: evaluatedAll.filter(({ evaluation }) => evaluation.matchState === "close").length,
-      needsData: evaluatedAll.filter(({ evaluation }) => evaluation.matchState === "needs_data" || evaluation.matchState === "special_condition").length,
-      official: evaluatedAll.filter(({ evaluation }) => evaluation.matchState === "official_validation").length,
+      recommended: personalized.filter(({ evaluation }) => evaluation.matchState === "recommended").length,
+      close: personalized.filter(({ evaluation }) => evaluation.matchState === "close").length,
+      needsData: personalized.filter(({ evaluation }) => evaluation.matchState === "needs_data").length,
+      official: personalized.filter(({ evaluation }) => evaluation.matchState === "official_validation").length,
     }),
-    [evaluatedAll]
+    [personalized]
   );
 
   function chooseCategory(next: (typeof CATEGORIES)[number]) {
@@ -89,7 +96,7 @@ export default function OportunidadesPage() {
     setPage(1);
   }
 
-  if (!profileHydrated || !profile.onboarded || !profile.academicSetupComplete) return null;
+  if (!profileHydrated || !profile.onboarded || !profile.academicSetupComplete || !profile.profileRefined) return null;
 
   const displayName = (profile.name || session.name || "Estudiante").trim();
 
@@ -102,7 +109,7 @@ export default function OportunidadesPage() {
               Oportunidades para {displayName}
             </h1>
             <p className="mt-2 text-sm font-medium text-canvas-foreground/62">
-              Basadas en tu perfil académico · <Link href="/configurar" className="font-bold text-primary hover:underline">Editar datos</Link>
+              Basadas en tu perfil académico · <Link href="/configuracion" className="font-bold text-primary hover:underline">Editar datos</Link>
             </p>
           </div>
           <span
@@ -164,7 +171,7 @@ export default function OportunidadesPage() {
           <div className="catalog-toolbar">
             <div>
               <h2 id="catalog-title" className="text-lg font-bold text-canvas-foreground">
-                {category === "Todas" ? "Todas las oportunidades" : category}
+                {category === "Todas" ? "Tus oportunidades" : category}
               </h2>
               <p className="mt-1 text-sm text-canvas-foreground/58">Página {page} de {totalPages}</p>
             </div>

@@ -143,7 +143,7 @@ const OPPORTUNITY_GATES: Record<string, ProfileGate[]> = {
   ],
   "empleabilidad-english-discoveries": [
     yes("enrolled-english", "Estar matriculado en el periodo", "enrolledCurrentTerm"),
-    { id: "english-four", label: "Haber aprobado o convalidado Inglés IV", kind: "unprofiled" },
+    yes("english-four", "Haber aprobado o convalidado Inglés IV", "englishIVPassed"),
   ],
   "empleabilidad-generacion-top": [
     { id: "medalla-oro", label: "Pertenecer a Medalla de Oro", kind: "unprofiled" },
@@ -249,10 +249,14 @@ export function evaluateProfileGate(gate: ProfileGate, profile: StudentProfile):
       return value === gate.expected ? "met" : "unmet";
     }
     case "academic_rank":
+      if (gate.id === "rank-mobility" || gate.id === "rank-virtual") {
+        if (gate.allowed.includes(profile.facts.academicRank)) return "met";
+        if ((profile.academicMetrics.lastTwoPeriodsGpa ?? 0) >= 14) return "met";
+      }
       if (profile.facts.academicRank === "unknown") return "unknown";
       return gate.allowed.includes(profile.facts.academicRank) ? "met" : "unmet";
     case "affiliation":
-      if (profile.facts.affiliations.length === 0) return "unknown";
+      if (!profile.profileRefined) return "unknown";
       return profile.facts.affiliations.some((item) => gate.allowed.includes(item)) ? "met" : "unmet";
     case "student_status":
       if (profile.facts.studentStatus === "unknown") return "unknown";
@@ -272,6 +276,27 @@ export function evaluateOpportunityGates(
     gate,
     result: evaluateProfileGate(gate, profile),
   }));
+}
+
+const CONTEXTUAL_TRI_STATE_FIELDS = new Set<TriStateField>([
+  "disciplinaryIssues",
+  "outstandingDebt",
+  "competitiveSport",
+  "representsUtp",
+  "eliteAthleteCredential",
+  "culturalEnsemble",
+  "researchExperience",
+  "volunteering",
+  "financialNeed",
+  "lostEconomicGuardian",
+  "disabilityConadis",
+  "regionalBenefit",
+]);
+
+export function gateRequiresContext(gate: ProfileGate) {
+  if (gate.kind === "tri_state") return CONTEXTUAL_TRI_STATE_FIELDS.has(gate.field);
+  if (gate.kind === "unprofiled") return Boolean(gate.sensitive);
+  return false;
 }
 
 const GOAL_CATEGORY: Partial<Record<StudentGoal, Opportunity["category"]>> = {

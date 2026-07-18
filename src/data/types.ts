@@ -10,12 +10,24 @@ export type RequirementType =
   | "boolean" // condición sí/no verificable con los datos que el alumno ingresa
   | "non_verifiable"; // depende de un trámite/documento oficial que la app no puede confirmar
 
+export type RequirementMetric =
+  | "current_cycle_gpa"
+  | "last_period_gpa"
+  | "last_two_periods_gpa"
+  | "cumulative_gpa"
+  | "approved_credits"
+  | "current_period_credits"
+  | "weekly_hours_current"
+  | "weekly_hours_previous"
+  | "cycle";
+
 export interface Requirement {
   id: string;
   description: string; // texto humano, ej. "Promedio ponderado mínimo de 12"
   type: RequirementType;
   threshold?: number; // usado si type es numeric_*
   comparator?: ">=" | ">" | "<=" | "<" | "==";
+  metric?: RequirementMetric;
   nonVerifiableNote?: string; // usado si type es non_verifiable o boolean sin dato del alumno
 }
 
@@ -57,7 +69,40 @@ export interface Course {
   name: string;
   credits: number;
   grade: number; // 0-20
+  period?: "current" | "previous" | "historical";
+  weeklyHours?: number;
+  source?: "manual" | "ocr" | "demo" | "institutional";
 }
+
+export interface AcademicMetrics {
+  currentCycleGpa: number | null;
+  lastPeriodGpa: number | null;
+  lastTwoPeriodsGpa: number | null;
+  currentPeriodCredits: number | null;
+  weeklyHoursCurrent: number | null;
+  weeklyHoursPrevious: number | null;
+}
+
+export const emptyAcademicMetrics: AcademicMetrics = {
+  currentCycleGpa: null,
+  lastPeriodGpa: null,
+  lastTwoPeriodsGpa: null,
+  currentPeriodCredits: null,
+  weeklyHoursCurrent: null,
+  weeklyHoursPrevious: null,
+};
+
+export interface DataProvenance {
+  academicSource: "manual" | "ocr" | "demo" | "institutional" | "unknown";
+  documentType: "schedule" | "grades" | "academic_summary" | "none";
+  confirmedAt: string | null;
+}
+
+export const emptyDataProvenance: DataProvenance = {
+  academicSource: "unknown",
+  documentType: "none",
+  confirmedAt: null,
+};
 
 export type TriState = "yes" | "no" | "unknown";
 
@@ -102,6 +147,7 @@ export interface ProfileFacts {
   studentStatus: StudentStatus;
   englishLevel: EnglishLevel;
   englishCertificate: TriState;
+  englishIVPassed: TriState;
   competitiveSport: TriState;
   representsUtp: TriState;
   eliteAthleteCredential: TriState;
@@ -128,6 +174,7 @@ export const emptyProfileFacts: ProfileFacts = {
   studentStatus: "unknown",
   englishLevel: "unknown",
   englishCertificate: "unknown",
+  englishIVPassed: "unknown",
   competitiveSport: "unknown",
   representsUtp: "unknown",
   eliteAthleteCredential: "unknown",
@@ -149,6 +196,9 @@ export interface StudentProfile {
   cycle: number; // ciclo actual, 1-10+
   cumulativeGpa: number; // promedio ponderado acumulado, 0-20
   approvedCredits: number; // créditos aprobados acumulados
+  academicPeriod: string;
+  academicMetrics: AcademicMetrics;
+  dataProvenance: DataProvenance;
   courses: Course[]; // cursos del ciclo actual, para los simuladores
   preferredCategories: OpportunityCategory[]; // intereses opcionales usados solo para jerarquizar
   facts: ProfileFacts; // datos opcionales declarados de forma respetuosa por el estudiante
@@ -157,6 +207,7 @@ export interface StudentProfile {
   onboarded: boolean; // true tras completar los datos generales del perfil
   profileRefined: boolean; // true cuando revisó (o decidió omitir) el bloque opcional
   academicSetupComplete: boolean; // true tras revisar la carga manual/OCR de cursos
+  contextConfigured: boolean;
 }
 
 export const emptyProfile: StudentProfile = {
@@ -165,6 +216,9 @@ export const emptyProfile: StudentProfile = {
   cycle: 1,
   cumulativeGpa: 0,
   approvedCredits: 0,
+  academicPeriod: "2026-1",
+  academicMetrics: emptyAcademicMetrics,
+  dataProvenance: emptyDataProvenance,
   courses: [],
   preferredCategories: [],
   facts: emptyProfileFacts,
@@ -173,4 +227,5 @@ export const emptyProfile: StudentProfile = {
   onboarded: false,
   profileRefined: false,
   academicSetupComplete: false,
+  contextConfigured: false,
 };

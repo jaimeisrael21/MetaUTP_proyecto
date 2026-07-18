@@ -7,6 +7,16 @@ export const DEMO_PROFILE: StudentProfile = {
   cycle: 7,
   cumulativeGpa: 15.5,
   approvedCredits: 120,
+  academicPeriod: "2026-1",
+  academicMetrics: {
+    currentCycleGpa: 16.05,
+    lastPeriodGpa: 15.5,
+    lastTwoPeriodsGpa: 15.4,
+    currentPeriodCredits: 13,
+    weeklyHoursCurrent: 22,
+    weeklyHoursPrevious: 20,
+  },
+  dataProvenance: { academicSource: "demo", documentType: "academic_summary", confirmedAt: "2026-03-01T12:00:00.000Z" },
   courses: [
     { id: "demo-1", name: "Calidad de Software", credits: 4, grade: 16 },
     { id: "demo-2", name: "Diseño de Aplicaciones Web", credits: 4, grade: 17 },
@@ -26,6 +36,7 @@ export const DEMO_PROFILE: StudentProfile = {
     studentStatus: "active",
     englishLevel: "B2",
     englishCertificate: "yes",
+    englishIVPassed: "yes",
     competitiveSport: "no",
     representsUtp: "no",
     eliteAthleteCredential: "no",
@@ -40,4 +51,5 @@ export const DEMO_PROFILE: StudentProfile = {
   onboarded: true,
   profileRefined: true,
   academicSetupComplete: true,
+  contextConfigured: true,
 };

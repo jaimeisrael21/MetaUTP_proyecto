@@ -21,8 +21,11 @@ export type Database = {
           grade: number
           id: string
           name: string
+          period: string
+          source: string
           updated_at: string
           user_id: string
+          weekly_hours: number
         }
         Insert: {
           created_at?: string
@@ -30,8 +33,11 @@ export type Database = {
           grade: number
           id: string
           name: string
+          period?: string
+          source?: string
           updated_at?: string
           user_id: string
+          weekly_hours?: number
         }
         Update: {
           created_at?: string
@@ -39,18 +45,25 @@ export type Database = {
           grade?: number
           id?: string
           name?: string
+          period?: string
+          source?: string
           updated_at?: string
           user_id?: string
+          weekly_hours?: number
         }
         Relationships: []
       }
       profiles: {
         Row: {
           academic_setup_complete: boolean
+          academic_metrics: Json
+          academic_period: string
           approved_credits: number
           career: string | null
+          context_configured: boolean
           created_at: string
           cumulative_gpa: number
+          data_provenance: Json
           cycle: number
           full_name: string | null
           goal: string
@@ -64,10 +77,14 @@ export type Database = {
         }
         Insert: {
           academic_setup_complete?: boolean
+          academic_metrics?: Json
+          academic_period?: string
           approved_credits?: number
           career?: string | null
+          context_configured?: boolean
           created_at?: string
           cumulative_gpa?: number
+          data_provenance?: Json
           cycle?: number
           full_name?: string | null
           goal?: string
@@ -81,10 +98,14 @@ export type Database = {
         }
         Update: {
           academic_setup_complete?: boolean
+          academic_metrics?: Json
+          academic_period?: string
           approved_credits?: number
           career?: string | null
+          context_configured?: boolean
           created_at?: string
           cumulative_gpa?: number
+          data_provenance?: Json
           cycle?: number
           full_name?: string | null
           goal?: string

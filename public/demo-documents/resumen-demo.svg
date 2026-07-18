@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="780" viewBox="0 0 1200 780">
+  <rect width="1200" height="780" fill="#faf7f2"/>
+  <rect x="45" y="40" width="1110" height="700" rx="28" fill="white" stroke="#ded4c7" stroke-width="3"/>
+  <rect x="45" y="40" width="1110" height="95" rx="28" fill="#17130f"/>
+  <text x="85" y="93" font-family="Arial" font-size="30" font-weight="700" fill="white">MetaUTP · Resumen académico de demostración</text>
+  <rect x="735" y="61" width="375" height="51" rx="14" fill="#c51f46"/>
+  <text x="922" y="93" text-anchor="middle" font-family="Arial" font-size="18" font-weight="700" fill="white">DATOS DE PRUEBA · NO OFICIAL</text>
+  <text x="85" y="185" font-family="Arial" font-size="24" font-weight="700" fill="#211b16">Estudiante: Jaime Aramburú · Periodo 2026-1</text>
+  <g font-family="Arial" fill="#322a24">
+    <text x="90" y="285" font-size="20" fill="#756a60">Promedio ponderado acumulado</text><text x="90" y="340" font-size="44" font-weight="700">15.2</text>
+    <text x="440" y="285" font-size="20" fill="#756a60">Créditos aprobados acumulados</text><text x="440" y="340" font-size="44" font-weight="700">120</text>
+    <text x="850" y="285" font-size="20" fill="#756a60">Ciclo actual</text><text x="850" y="340" font-size="44" font-weight="700">7</text>
+  </g>
+  <rect x="85" y="395" width="1030" height="92" rx="18" fill="#e5f8ec"/>
+  <text x="120" y="435" font-family="Arial" font-size="21" font-weight="700" fill="#087a3c">Posición académica oficial: Tercio superior</text>
+  <text x="120" y="469" font-family="Arial" font-size="21" font-weight="700" fill="#087a3c">Inglés IV aprobado</text>
+  <rect x="85" y="520" width="1030" height="120" rx="18" fill="#e6f7fb"/>
+  <text x="120" y="563" font-family="Arial" font-size="20" font-weight="700" fill="#087f9c">Origen de este archivo: plantilla local para probar OCR</text>
+  <text x="120" y="599" font-family="Arial" font-size="18" fill="#46636a">No representa una constancia emitida por la UTP y no acredita ningún requisito.</text>
+</svg>

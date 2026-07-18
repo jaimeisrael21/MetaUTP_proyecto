@@ -9,6 +9,7 @@ import type {
 } from "@/data/types";
 import {
   evaluateOpportunityGates,
+  gateRequiresContext,
   goalRelevance,
   type GateEvaluation,
 } from "@/data/opportunity-rules";
@@ -58,11 +59,52 @@ function compare(value: number, comparator: string, threshold: number): boolean 
   }
 }
 
-function profileValueFor(type: string, profile: StudentProfile): number | null {
-  if (type === "numeric_gpa") return profile.cumulativeGpa;
-  if (type === "numeric_credits") return profile.approvedCredits;
-  if (type === "numeric_cycle") return profile.cycle;
+function normalizedDescription(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
+function inferredMetric(requirement: Requirement) {
+  if (requirement.metric) return requirement.metric;
+  const description = normalizedDescription(requirement.description);
+
+  if (requirement.type === "numeric_cycle") return "cycle" as const;
+  if (requirement.type === "numeric_credits") {
+    if (description.includes("horas") && description.includes("anterior")) {
+      return "weekly_hours_previous" as const;
+    }
+    if (description.includes("horas")) return "weekly_hours_current" as const;
+    if (description.includes("matriculad") || description.includes("periodo actual")) {
+      return "current_period_credits" as const;
+    }
+    return "approved_credits" as const;
+  }
+  if (requirement.type === "numeric_gpa") {
+    if (description.includes("acumulad")) return "cumulative_gpa" as const;
+    if (description.includes("dos ciclos") || description.includes("2 ciclos")) {
+      return "last_two_periods_gpa" as const;
+    }
+    if (description.includes("ciclo actual")) return "current_cycle_gpa" as const;
+    return "last_period_gpa" as const;
+  }
   return null;
+}
+
+function profileValueFor(requirement: Requirement, profile: StudentProfile): number | null {
+  const metric = inferredMetric(requirement);
+  let value: number | null = null;
+  if (metric === "cycle") return profile.cycle;
+  if (metric === "cumulative_gpa") value = profile.cumulativeGpa;
+  if (metric === "approved_credits") value = profile.approvedCredits;
+  if (metric === "current_cycle_gpa") value = profile.academicMetrics.currentCycleGpa;
+  if (metric === "last_period_gpa") value = profile.academicMetrics.lastPeriodGpa;
+  if (metric === "last_two_periods_gpa") value = profile.academicMetrics.lastTwoPeriodsGpa;
+  if (metric === "current_period_credits") value = profile.academicMetrics.currentPeriodCredits;
+  if (metric === "weekly_hours_current") value = profile.academicMetrics.weeklyHoursCurrent;
+  if (metric === "weekly_hours_previous") value = profile.academicMetrics.weeklyHoursPrevious;
+  return value !== null && value > 0 ? value : null;
 }
 
 export function evaluateRequirement(
@@ -75,7 +117,7 @@ export function evaluateRequirement(
     requirement.type === "numeric_cycle";
 
   if (isNumeric && requirement.threshold !== undefined) {
-    const value = profileValueFor(requirement.type, profile);
+    const value = profileValueFor(requirement, profile);
     const comparator = requirement.comparator ?? ">=";
     if (value === null) {
       return { requirement, status: "needs_info", detail: requirement.description };
@@ -139,6 +181,7 @@ export interface OpportunityEvaluation {
   essentialMetCount: number;
   essentialUnknownCount: number;
   essentialUnmetCount: number;
+  contextualUnknownCount: number;
   confirmedCount: number;
   comparisonTotal: number;
   matchState: OpportunityMatchState;
@@ -225,6 +268,9 @@ export function evaluateOpportunity(
   const essentialMetCount = gateEvaluations.filter((item) => item.result === "met").length;
   const essentialUnknownCount = gateEvaluations.filter((item) => item.result === "unknown").length;
   const essentialUnmetCount = gateEvaluations.filter((item) => item.result === "unmet").length;
+  const contextualUnknownCount = gateEvaluations.filter(
+    (item) => item.result === "unknown" && gateRequiresContext(item.gate)
+  ).length;
   const hasUnknownSensitiveCondition = gateEvaluations.some(
     (item) => item.result === "unknown" && "sensitive" in item.gate && item.gate.sensitive
   );
@@ -242,13 +288,13 @@ export function evaluateOpportunity(
   let matchState: OpportunityMatchState = "recommended";
   if (opportunity.actionability === "informational" || window.status === "closed") {
     matchState = "general_catalog";
-  } else if (essentialUnmetCount > 0 || unmetCount > 0) {
+  } else if (essentialUnmetCount > 0) {
     matchState = "not_applicable";
   } else if (hasUnknownSensitiveCondition) {
     matchState = "special_condition";
   } else if (essentialUnknownCount > 0 || needsInfoCount > 0) {
     matchState = "needs_data";
-  } else if (closeCount > 0) {
+  } else if (closeCount > 0 || unmetCount > 0) {
     matchState = "close";
   } else if (officialCount > 0) {
     matchState = "official_validation";
@@ -277,12 +323,26 @@ export function evaluateOpportunity(
     essentialMetCount,
     essentialUnknownCount,
     essentialUnmetCount,
+    contextualUnknownCount,
     confirmedCount,
     comparisonTotal,
     matchState,
     primaryGap,
     window,
   };
+}
+
+/**
+ * La vista del alumno no es un buscador del catálogo completo. Oculta
+ * convocatorias cerradas, condiciones contextuales aún no habilitadas y
+ * oportunidades que contradicen un dato esencial declarado. Los requisitos
+ * académicos que todavía no se cumplen sí permanecen visibles: son accionables.
+ */
+export function isPersonalizedOpportunityVisible(evaluation: OpportunityEvaluation) {
+  if (evaluation.window.status === "closed") return false;
+  if (evaluation.contextualUnknownCount > 0) return false;
+  if (evaluation.essentialUnmetCount > 0) return false;
+  return true;
 }
 
 export interface RankingInfo {

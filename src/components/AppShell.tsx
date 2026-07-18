@@ -3,12 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Sidebar } from "./Sidebar";
-import { CompassIcon, SlidersIcon, UserIcon } from "./icons";
+import { CompassIcon, SettingsIcon, SlidersIcon } from "./icons";
 
 const MOBILE_NAV = [
   { href: "/oportunidades", label: "Oportunidades", icon: CompassIcon },
   { href: "/simulador", label: "Plan", icon: SlidersIcon },
-  { href: "/configurar", label: "Perfil", icon: UserIcon },
+  { href: "/configuracion", label: "Configuración", icon: SettingsIcon },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {

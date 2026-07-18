@@ -8,6 +8,7 @@ import {
   CompassIcon,
   LogOutIcon,
   SlidersIcon,
+  SettingsIcon,
   UserIcon,
 } from "./icons";
 
@@ -67,9 +68,15 @@ export function Sidebar() {
         })}
       </nav>
 
+      <div className="px-3 pb-3">
+        <Link href="/configuracion" className={`group flex items-center gap-3 rounded-xl px-3.5 py-3 text-[15px] font-semibold transition-all duration-200 ${pathname?.startsWith("/configuracion") ? "bg-sidebar-soft text-sidebar-foreground" : "text-sidebar-muted hover:bg-sidebar-soft hover:text-sidebar-foreground"}`}>
+          <SettingsIcon width={18} height={18} /> Configuración
+        </Link>
+      </div>
+
       <div className="border-t border-white/10 p-3">
         <div className="flex items-center gap-3 rounded-2xl border border-white/8 bg-sidebar-soft/70 p-3">
-          <Link href="/configurar" className="group flex min-w-0 flex-1 items-center gap-3" title="Editar perfil académico">
+          <Link href="/configuracion" className="group flex min-w-0 flex-1 items-center gap-3" title="Abrir Configuración">
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-extrabold text-white transition group-hover:scale-105">
               {initials || <UserIcon width={17} height={17} />}
             </span>
