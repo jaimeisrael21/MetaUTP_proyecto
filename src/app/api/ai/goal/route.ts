@@ -104,9 +104,17 @@ function hasCapacity(ip: string) {
   return true;
 }
 
+function humanizeModelText(value: string) {
+  return value
+    .replace(/['"]?needs_data['"]?/gi, "requieren datos")
+    .replace(/['"]?official_validation['"]?/gi, "requieren validación oficial")
+    .replace(/['"]?not_applicable['"]?/gi, "no aplican por ahora")
+    .replace(/['"]?general_catalog['"]?/gi, "catálogo general");
+}
+
 function safeFollowUpQuestions(profile: StudentProfile, questions: string[]) {
   const sensitive = /fallec|orfand|discap|pobre|padre|madre|apoderad|econ[oó]mic/i;
-  return questions.filter((question) => {
+  return questions.map(humanizeModelText).filter((question) => {
     if (sensitive.test(question)) return false;
     if (profile.facts.age18Plus !== "unknown" && /edad|18 a[nñ]os/i.test(question)) return false;
     if (
@@ -122,13 +130,14 @@ function safeFollowUpQuestions(profile: StudentProfile, questions: string[]) {
 }
 
 function safeSummary(profile: StudentProfile, summary: string) {
+  const clearSummary = humanizeModelText(summary);
   if (profile.facts.age18Plus === "yes") {
-    return summary.replace(
+    return clearSummary.replace(
       /si cumples[^,.]*requisito[^,.]*edad/gi,
       "porque ya registraste que cumples el requisito de edad"
     );
   }
-  return summary;
+  return clearSummary;
 }
 
 export async function POST(request: NextRequest) {
@@ -232,7 +241,7 @@ export async function POST(request: NextRequest) {
       profile,
       output.followUpQuestions ?? output.preguntas_faltantes ?? []
     );
-    const suggestedNextAction = output.nextAction ?? output.accion_siguiente ?? fallback.nextAction;
+    const suggestedNextAction = humanizeModelText(output.nextAction ?? output.accion_siguiente ?? fallback.nextAction);
     const repeatsKnownData =
       (profile.facts.age18Plus !== "unknown" && /edad|18 a[nñ]os/i.test(suggestedNextAction)) ||
       (profile.facts.failedLastPeriod !== "unknown" && /desaprobad|reprobad/i.test(suggestedNextAction)) ||
