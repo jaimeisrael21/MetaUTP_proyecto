@@ -1,12 +1,12 @@
 import { NextRequest } from "next/server";
-import { generateText, Output } from "ai";
+import { generateText } from "ai";
 import { z } from "zod";
 import { opportunities } from "@/data/opportunities";
 import type { StudentProfile } from "@/data/types";
 import { evaluateOpportunity } from "@/lib/matching";
 
 export const runtime = "nodejs";
-export const maxDuration = 10;
+export const maxDuration = 15;
 
 const requestSchema = z.object({
   opportunityId: z.string().min(1).max(120),
@@ -24,6 +24,40 @@ const explanationSchema = z.object({
 });
 
 type Explanation = z.infer<typeof explanationSchema>;
+
+const DEFAULT_AI_MODEL = "alibaba/qwen3.5-flash";
+
+function configuredModel() {
+  return (
+    process.env.AI_GATEWAY_MODEL?.replace(/^\uFEFF/, "").trim() ||
+    DEFAULT_AI_MODEL
+  );
+}
+
+function parseModelExplanation(text: string): Explanation {
+  const trimmed = text.trim();
+  const withoutFence = trimmed
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/\s*```$/, "")
+    .trim();
+  const firstBrace = withoutFence.indexOf("{");
+  const lastBrace = withoutFence.lastIndexOf("}");
+  const json =
+    firstBrace >= 0 && lastBrace > firstBrace
+      ? withoutFence.slice(firstBrace, lastBrace + 1)
+      : withoutFence;
+
+  return explanationSchema.parse(JSON.parse(json));
+}
+
+function safeGatewayError(error: unknown) {
+  if (!(error instanceof Error)) return { name: "UnknownError" };
+  const statusCode =
+    "statusCode" in error && typeof error.statusCode === "number"
+      ? error.statusCode
+      : undefined;
+  return { name: error.name, statusCode, message: error.message };
+}
 
 const rateLimits = new Map<string, { count: number; resetAt: number }>();
 
@@ -121,38 +155,46 @@ export async function POST(request: NextRequest) {
   );
 
   try {
-    const model = process.env.AI_GATEWAY_MODEL ?? "google/gemini-3-flash";
+    const model = configuredModel();
     const result = await generateText({
       model,
-      abortSignal: AbortSignal.timeout(4_500),
+      abortSignal: AbortSignal.timeout(12_000),
       maxRetries: 0,
-      output: Output.object({
-        schema: explanationSchema,
-        name: "opportunity_explanation",
-        description: "Explicación breve y accionable para un estudiante universitario.",
-      }),
-      system:
-        "Eres el asistente explicativo de MetaUTP. Responde en español peruano claro. No inventes requisitos, fechas, probabilidades ni beneficios. No afirmes que el estudiante fue admitido. Las reglas recibidas son la única base de verdad. Prioriza próximos pasos concretos.",
-      prompt: JSON.stringify({
-        opportunity: {
-          title: opportunity.title,
-          category: opportunity.category,
-          description: opportunity.shortDescription,
-          actionNote: opportunity.actionNote,
-          window: evaluation.window.label,
+      temperature: 0,
+      maxOutputTokens: 420,
+      providerOptions: {
+        alibaba: { enableThinking: false },
+        gateway: {
+          tags: ["feature:opportunity-explanation", "app:metautp"],
         },
-        result: evaluation.evaluations.map((item) => ({
-          requirement: item.requirement.description,
-          status: item.status,
-          detail: item.detail,
-        })),
-      }),
+      },
+      system:
+        "Eres el asistente explicativo de MetaUTP. Responde en español peruano claro. No inventes requisitos, fechas, probabilidades ni beneficios. No afirmes que el estudiante fue admitido. Las reglas recibidas son la única base de verdad. Devuelve solamente un objeto JSON válido, sin Markdown ni texto adicional.",
+      prompt: `Genera una explicación breve y accionable con este esquema JSON exacto: {"summary":"texto","nextSteps":["texto"],"caveat":"texto"}. Incluye de 1 a 3 nextSteps. Respeta los límites: summary máximo 420 caracteres, cada nextStep máximo 240 y caveat máximo 260. Datos verificados: ${JSON.stringify(
+        {
+          opportunity: {
+            title: opportunity.title,
+            category: opportunity.category,
+            description: opportunity.shortDescription,
+            actionNote: opportunity.actionNote,
+            window: evaluation.window.label,
+          },
+          result: evaluation.evaluations.map((item) => ({
+            requirement: item.requirement.description,
+            status: item.status,
+            detail: item.detail,
+          })),
+        }
+      )}`,
     });
 
-    if (!result.output) throw new Error("El modelo no devolvió una estructura válida.");
-    return Response.json({ ...result.output, mode: "ai" as const });
-  } catch {
-    console.warn("AI Gateway no disponible; se usó la explicación determinística.");
+    const explanation = parseModelExplanation(result.text);
+    return Response.json({ ...explanation, mode: "ai" as const });
+  } catch (error) {
+    console.warn(
+      "AI Gateway no disponible; se usó la explicación determinística.",
+      safeGatewayError(error)
+    );
     return Response.json({ ...fallback, mode: "rules" as const });
   }
 }
