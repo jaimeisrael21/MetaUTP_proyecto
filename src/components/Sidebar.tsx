@@ -77,7 +77,7 @@ export function Sidebar() {
             {initials || <UserIcon width={17} height={17} />}
           </span>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-bold text-sidebar-foreground" title={session.name}>
+            <p className="break-words text-[13px] font-bold leading-4 text-sidebar-foreground" title={session.name}>
               {session.name || "Estudiante UTP"}
             </p>
             <p className="mt-0.5 truncate text-xs font-medium text-sidebar-muted" title={session.email}>
