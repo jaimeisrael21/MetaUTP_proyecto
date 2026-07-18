@@ -1,20 +1,20 @@
 import { createBrowserClient } from "@supabase/ssr";
 import type { Database } from "./database.types";
+import { getSupabasePublicConfig } from "./config";
 
 let browserClient: ReturnType<typeof createBrowserClient<Database>> | null = null;
 
 export function isSupabaseConfigured() {
-  return Boolean(
-    process.env.NEXT_PUBLIC_SUPABASE_URL &&
-      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
-  );
+  return Boolean(getSupabasePublicConfig());
 }
 
 export function getSupabaseBrowserClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  const config = getSupabasePublicConfig();
+  if (!config) return null;
 
-  if (!url || !publishableKey) return null;
-  browserClient ??= createBrowserClient<Database>(url, publishableKey);
+  browserClient ??= createBrowserClient<Database>(
+    config.url,
+    config.publishableKey
+  );
   return browserClient;
 }

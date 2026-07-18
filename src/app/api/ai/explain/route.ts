@@ -6,7 +6,7 @@ import type { StudentProfile } from "@/data/types";
 import { evaluateOpportunity } from "@/lib/matching";
 
 export const runtime = "nodejs";
-export const maxDuration = 30;
+export const maxDuration = 10;
 
 const requestSchema = z.object({
   opportunityId: z.string().min(1).max(120),
@@ -124,6 +124,8 @@ export async function POST(request: NextRequest) {
     const model = process.env.AI_GATEWAY_MODEL ?? "google/gemini-3-flash";
     const result = await generateText({
       model,
+      abortSignal: AbortSignal.timeout(4_500),
+      maxRetries: 0,
       output: Output.object({
         schema: explanationSchema,
         name: "opportunity_explanation",

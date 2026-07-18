@@ -12,6 +12,43 @@ import {
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { CompassIcon, GaugeIcon, ShieldIcon } from "@/components/icons";
 
+function friendlyAuthError(caught: unknown) {
+  const code =
+    typeof caught === "object" && caught && "code" in caught
+      ? String(caught.code)
+      : "";
+  const detail = caught instanceof Error ? caught.message.toLowerCase() : "";
+
+  if (code === "invalid_credentials") {
+    return "El correo o la contraseña no coinciden. Revísalos e inténtalo otra vez.";
+  }
+  if (code === "email_not_confirmed") {
+    return "Primero confirma tu correo con el enlace que te enviamos y luego inicia sesión.";
+  }
+  if (code === "user_already_exists" || detail.includes("already registered")) {
+    return "Ese correo ya tiene una cuenta. Inicia sesión o usa otro correo personal.";
+  }
+  if (code === "weak_password" || detail.includes("password should")) {
+    return "Usa una contraseña de al menos 8 caracteres.";
+  }
+  if (code === "email_address_invalid" || detail.includes("email address")) {
+    return "Ese correo no parece válido. Revísalo o usa otro correo personal.";
+  }
+  if (code === "over_email_send_rate_limit" || detail.includes("email rate limit")) {
+    return "El servicio de correo alcanzó su límite temporal. Puedes explorar la demo y volver a intentarlo en unos minutos.";
+  }
+  if (
+    detail.includes("failed to fetch") ||
+    detail.includes("network") ||
+    detail.includes("iso-8859-1") ||
+    detail.includes("headers")
+  ) {
+    return "No pudimos conectar con el registro. Revisa tu conexión o explora la demo mientras lo intentas de nuevo.";
+  }
+
+  return "No se pudo completar el acceso. Inténtalo otra vez o explora la demo.";
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const { login } = useSession();
@@ -42,8 +79,8 @@ export default function LoginPage() {
       setError("Ingresa tu correo y contraseña para continuar.");
       return;
     }
-    if (password.length < 6) {
-      setError("La contraseña debe tener al menos 6 caracteres.");
+    if (mode === "signup" && password.length < 8) {
+      setError("La contraseña debe tener al menos 8 caracteres.");
       return;
     }
     if (mode === "signup" && !cleanName) {
@@ -53,7 +90,9 @@ export default function LoginPage() {
 
     const supabase = getSupabaseBrowserClient();
     if (!supabase) {
-      enterProduct({ name: cleanName || cleanEmail.split("@")[0], email: cleanEmail });
+      setError(
+        "El registro no está disponible en este momento. Puedes explorar la demo sin crear una cuenta."
+      );
       return;
     }
 
@@ -63,12 +102,15 @@ export default function LoginPage() {
         const { data, error: authError } = await supabase.auth.signUp({
           email: cleanEmail,
           password,
-          options: { data: { full_name: cleanName } },
+          options: {
+            data: { full_name: cleanName },
+            emailRedirectTo: `${window.location.origin}/`,
+          },
         });
         if (authError) throw authError;
         if (!data.session) {
           setMessage(
-            "Cuenta creada. Revisa tu correo y confirma el enlace; luego vuelve para iniciar sesión."
+            "Cuenta creada. Revisa tu correo y confirma el enlace; volverás a MetaUTP para iniciar sesión."
           );
           return;
         }
@@ -88,11 +130,7 @@ export default function LoginPage() {
         email: cleanEmail,
       });
     } catch (caught) {
-      setError(
-        caught instanceof Error
-          ? caught.message
-          : "No se pudo completar el acceso. Inténtalo otra vez."
-      );
+      setError(friendlyAuthError(caught));
     } finally {
       setLoading(false);
     }
@@ -203,6 +241,8 @@ export default function LoginPage() {
                   onChange={(event) => setName(event.target.value)}
                   placeholder="Jaime Aramburu"
                   autoComplete="name"
+                  required
+                  disabled={loading}
                   className="mt-1.5 w-full rounded-lg border border-border-strong bg-white px-3.5 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                 />
               </div>
@@ -219,6 +259,8 @@ export default function LoginPage() {
                 onChange={(event) => setEmail(event.target.value)}
                 placeholder="nombre@gmail.com"
                 autoComplete="email"
+                required
+                disabled={loading}
                 className="mt-1.5 w-full rounded-lg border border-border-strong bg-white px-3.5 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
               />
             </div>
@@ -232,14 +274,25 @@ export default function LoginPage() {
                 type="password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                placeholder="Mínimo 6 caracteres"
+                placeholder={mode === "signup" ? "Mínimo 8 caracteres" : "Tu contraseña"}
                 autoComplete={mode === "login" ? "current-password" : "new-password"}
+                minLength={mode === "signup" ? 8 : 1}
+                required
+                disabled={loading}
                 className="mt-1.5 w-full rounded-lg border border-border-strong bg-white px-3.5 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
               />
             </div>
 
-            {error && <p className="text-sm text-status-unmet">{error}</p>}
-            {message && <p className="text-sm text-status-met">{message}</p>}
+            {error && (
+              <p role="alert" className="text-sm text-status-unmet">
+                {error}
+              </p>
+            )}
+            {message && (
+              <p role="status" aria-live="polite" className="text-sm text-status-met">
+                {message}
+              </p>
+            )}
 
             <button
               type="submit"
