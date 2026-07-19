@@ -132,9 +132,8 @@ export default function PanelPage() {
     update({ academicMetrics: { ...profile.academicMetrics, [key]: numericValue(value) } });
   }
 
-  return (
-    <AppShell>
-      <div className="mx-auto max-w-6xl px-5 py-7 md:px-10 md:py-10">
+  const content = (
+    <div className="mx-auto max-w-6xl px-5 py-7 md:px-10 md:py-10">
         {!profile.academicSetupComplete && (
           <div className="max-w-2xl">
             <SetupProgress current={2} />
@@ -349,7 +348,12 @@ export default function PanelPage() {
             <ArrowRightIcon width={18} height={18} />
           </button>
         </section>
-      </div>
-    </AppShell>
+    </div>
   );
+
+  if (!profile.profileRefined) {
+    return <main className="min-h-screen bg-canvas">{content}</main>;
+  }
+
+  return <AppShell>{content}</AppShell>;
 }
