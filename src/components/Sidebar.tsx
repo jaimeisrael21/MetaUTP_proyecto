@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useSession } from "@/lib/store";
+import { clearProfile, useSession } from "@/lib/store";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import {
   CompassIcon,
@@ -85,7 +85,7 @@ export function Sidebar() {
                 {session.name || "Estudiante UTP"}
               </span>
               <span className="mt-0.5 block truncate text-xs font-medium text-sidebar-muted" title={session.email}>
-                {session.email || "Cuenta personal"} · Perfil
+                {session.mode === "demo" ? "Sesión temporal · Demo" : `${session.email || "Cuenta personal"} · Perfil`}
               </span>
             </span>
           </Link>
@@ -94,6 +94,7 @@ export function Sidebar() {
             onClick={async () => {
               const supabase = getSupabaseBrowserClient();
               if (supabase) await supabase.auth.signOut();
+              if (session.mode === "demo") clearProfile();
               logout();
               router.push("/");
             }}

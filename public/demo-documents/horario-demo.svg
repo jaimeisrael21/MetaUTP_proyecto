@@ -6,7 +6,7 @@
   <text x="85" y="120" font-family="Arial" font-size="18" fill="#e4dcd2">Periodo académico 2026-1</text>
   <rect x="735" y="61" width="375" height="51" rx="14" fill="#c51f46"/>
   <text x="922" y="93" text-anchor="middle" font-family="Arial" font-size="18" font-weight="700" fill="white">DATOS DE PRUEBA · NO OFICIAL</text>
-  <text x="85" y="185" font-family="Arial" font-size="24" font-weight="700" fill="#211b16">Estudiante: Jaime Aramburú · Ciclo 7</text>
+  <text x="85" y="185" font-family="Arial" font-size="24" font-weight="700" fill="#211b16">Perfil académico de prueba · Ciclo 7</text>
   <g font-family="Arial" font-size="20" fill="#322a24">
     <text x="85" y="245" font-weight="700">Curso</text><text x="720" y="245" font-weight="700">Créditos</text><text x="920" y="245" font-weight="700">Horas semanales</text>
     <path d="M80 265H1120" stroke="#ded4c7" stroke-width="2"/>

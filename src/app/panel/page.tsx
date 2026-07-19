@@ -101,7 +101,7 @@ export default function PanelPage() {
         confirmedAt: new Date().toISOString(),
       },
     });
-    setEntryMethod("manual");
+    setEntryMethod("ocr");
   }
 
   function finishSetup() {
@@ -171,21 +171,6 @@ export default function PanelPage() {
           </div>
         </section>
 
-        <section className="mt-6 rounded-2xl border border-border bg-white p-5 shadow-sm" aria-labelledby="academic-summary-title">
-          <div>
-            <p className="eyebrow">Resumen académico</p>
-            <h2 id="academic-summary-title" className="mt-1 text-xl font-bold text-canvas-foreground">Registra cada dato con su significado</h2>
-            <p className="mt-1 text-sm leading-6 text-canvas-foreground/60">Déjalo vacío si no aparece en tu documento. MetaUTP mostrará “falta por confirmar” y nunca lo calculará comparándote con otros usuarios.</p>
-          </div>
-          <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <label><span className="field-label">Promedio periodo anterior</span><input type="number" min={0} max={20} step="0.01" value={profile.academicMetrics.lastPeriodGpa ?? ""} onChange={(event) => updateMetric("lastPeriodGpa", event.target.value)} className="field-control" placeholder="Ej. 15.5" /></label>
-            <label><span className="field-label">Promedio acumulado oficial</span><input type="number" min={0} max={20} step="0.01" value={profile.cumulativeGpa || ""} onChange={(event) => update({ cumulativeGpa: numericValue(event.target.value) ?? 0 })} className="field-control" placeholder="Ej. 15.2" /></label>
-            <label><span className="field-label">Créditos aprobados acumulados</span><input type="number" min={0} value={profile.approvedCredits || ""} onChange={(event) => update({ approvedCredits: numericValue(event.target.value) ?? 0 })} className="field-control" placeholder="Ej. 120" /></label>
-            <label><span className="field-label">Horas semanales actuales</span><input type="number" min={0} max={80} step="0.5" value={profile.academicMetrics.weeklyHoursCurrent ?? ""} onChange={(event) => updateMetric("weeklyHoursCurrent", event.target.value)} className="field-control" placeholder="Ej. 20" /></label>
-          </div>
-          <p className="mt-3 text-xs leading-5 text-canvas-foreground/50">El promedio del ciclo actual y sus créditos se calculan solo con los cursos que confirmes debajo.</p>
-        </section>
-
         <section className="mt-7" aria-labelledby="entry-method-title">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
@@ -242,14 +227,28 @@ export default function PanelPage() {
           </div>
         </section>
 
-        {entryMethod === "ocr" && <div className="mt-5 page-enter">
-          <section className="mb-4 rounded-2xl border border-border bg-white p-4">
-            <p className="text-sm font-bold text-canvas-foreground">Documentos de prueba para la demo</p>
-            <p className="mt-1 text-xs leading-5 text-canvas-foreground/55">Descárgalos y vuelve a subirlos al OCR. Todos están marcados como datos de prueba no oficiales.</p>
-            <div className="mt-3 flex flex-wrap gap-2"><a href="/demo-documents/horario-demo.png" download className="secondary-button text-xs">Horario</a><a href="/demo-documents/notas-demo.png" download className="secondary-button text-xs">Notas</a><a href="/demo-documents/resumen-demo.png" download className="secondary-button text-xs">Resumen académico</a></div>
+        {(entryMethod !== null || profile.academicSetupComplete) && (
+          <section className="mt-6 rounded-2xl border border-border bg-white p-5 shadow-sm" aria-labelledby="academic-summary-title">
+            <div>
+              <p className="eyebrow">Resumen académico</p>
+              <h2 id="academic-summary-title" className="mt-1 text-xl font-bold text-canvas-foreground">
+                {entryMethod === "manual" ? "Completa los datos que figuran en tu documento" : entryMethod === "ocr" ? "Datos detectados por tus capturas" : "Datos académicos guardados"}
+              </h2>
+              <p className="mt-1 text-sm leading-6 text-canvas-foreground/60">
+                {entryMethod === "manual" ? "Déjalo vacío si no lo conoces. MetaUTP nunca lo calculará comparándote con otros usuarios." : entryMethod === "ocr" ? "Sube y confirma cada captura; este resumen se actualizará sin reemplazar los datos anteriores." : "Elige un método abajo para incorporar otra captura o corregirlos manualmente."}
+              </p>
+            </div>
+            <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <label><span className="field-label">Promedio periodo anterior</span><input type="number" min={0} max={20} step="0.01" value={profile.academicMetrics.lastPeriodGpa ?? ""} onChange={(event) => updateMetric("lastPeriodGpa", event.target.value)} disabled={entryMethod !== "manual"} className="field-control disabled:bg-canvas-soft disabled:text-canvas-foreground/65" placeholder="Por confirmar" /></label>
+              <label><span className="field-label">Promedio acumulado según tu récord</span><input type="number" min={0} max={20} step="0.01" value={profile.cumulativeGpa || ""} onChange={(event) => update({ cumulativeGpa: numericValue(event.target.value) ?? 0 })} disabled={entryMethod !== "manual"} className="field-control disabled:bg-canvas-soft disabled:text-canvas-foreground/65" placeholder="Por confirmar" /></label>
+              <label><span className="field-label">Créditos aprobados acumulados</span><input type="number" min={0} value={profile.approvedCredits || ""} onChange={(event) => update({ approvedCredits: numericValue(event.target.value) ?? 0 })} disabled={entryMethod !== "manual"} className="field-control disabled:bg-canvas-soft disabled:text-canvas-foreground/65" placeholder="Por confirmar" /></label>
+              <label><span className="field-label">Horas semanales actuales</span><input type="number" min={0} max={80} step="0.5" value={profile.academicMetrics.weeklyHoursCurrent ?? ""} onChange={(event) => updateMetric("weeklyHoursCurrent", event.target.value)} disabled={entryMethod !== "manual"} className="field-control disabled:bg-canvas-soft disabled:text-canvas-foreground/65" placeholder="Por confirmar" /></label>
+            </div>
+            <p className="mt-3 text-xs leading-5 text-canvas-foreground/50">El promedio y los créditos del ciclo actual se calculan únicamente con los cursos que confirmes.</p>
           </section>
-          <OcrCourseImporter onImport={importCourses} />
-        </div>}
+        )}
+
+        {entryMethod === "ocr" && <div className="mt-5 page-enter"><OcrCourseImporter onImport={importCourses} /></div>}
 
         {entryMethod === "manual" && (
           <section className="mt-7 page-enter" aria-labelledby="courses-title">

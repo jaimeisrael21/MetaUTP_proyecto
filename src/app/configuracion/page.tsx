@@ -33,8 +33,7 @@ export default function ConfiguracionPage() {
   function patch(next: Partial<ProfileFacts>) { update({ facts: { ...facts, ...next } }); setSaved(false); }
   function saveContext() {
     update({ contextConfigured: true });
-    setSaved(true);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    router.push("/oportunidades?updated=1");
   }
   function omitSensitiveContext() {
     const next = {

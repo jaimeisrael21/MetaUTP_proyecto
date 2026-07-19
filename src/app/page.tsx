@@ -10,7 +10,6 @@ import {
   saveProfile,
   useSession,
 } from "@/lib/store";
-import { DEMO_PROFILE } from "@/data/demo-profile";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { loadProfileForAuthenticatedUser } from "@/lib/supabase/profile-sync";
 import { CompassIcon, GaugeIcon, ShieldIcon } from "@/components/icons";
@@ -65,8 +64,8 @@ export default function LoginPage() {
 
   async function enterProduct(account: { name: string; email: string }) {
     const previous = getSession();
-    if (previous.email && previous.email !== account.email) clearProfile();
-    login(account);
+    if (previous.mode === "demo" || (previous.email && previous.email !== account.email)) clearProfile();
+    login({ ...account, mode: "authenticated" });
     const remoteProfile = await loadProfileForAuthenticatedUser().catch(() => null);
     if (remoteProfile) saveProfile(remoteProfile);
     const profile = remoteProfile ?? getProfile();
@@ -144,15 +143,13 @@ export default function LoginPage() {
     }
   }
 
-  function enterDemo() {
-    const demoAccount = { name: DEMO_PROFILE.name, email: "demo@metautp.app" };
-    const previous = getSession();
-    if (previous.email !== demoAccount.email || !getProfile().onboarded) {
-      clearProfile();
-      saveProfile(DEMO_PROFILE);
-    }
-    login(demoAccount);
-    router.push("/oportunidades");
+  async function enterDemo() {
+    const supabase = getSupabaseBrowserClient();
+    if (supabase) await supabase.auth.signOut();
+    clearProfile();
+    clearSession();
+    login({ mode: "demo" });
+    router.push("/configurar");
   }
 
   async function resetDemo() {
@@ -323,7 +320,7 @@ export default function LoginPage() {
             onClick={enterDemo}
             className="secondary-button mt-3 w-full"
           >
-            Explorar demo sin crear cuenta
+            Probar demo desde cero
           </button>
 
           <p className="mt-6 text-center text-sm text-canvas-foreground/60">

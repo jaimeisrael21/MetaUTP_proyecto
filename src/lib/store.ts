@@ -24,6 +24,7 @@ export interface Session {
   loggedIn: boolean;
   name?: string;
   email?: string;
+  mode?: "authenticated" | "demo";
 }
 
 const emptySession: Session = { loggedIn: false };
@@ -57,6 +58,7 @@ export function getProfile(): StudentProfile {
 
 export function saveProfile(profile: StudentProfile) {
   writeJson(PROFILE_KEY, profile);
+  if (getSession().mode === "demo") return;
   void persistProfileForAuthenticatedUser(profile).catch(() => {
     // La copia local mantiene el recorrido disponible si la red o Supabase fallan.
   });
@@ -188,7 +190,7 @@ export function useSession() {
   const hydrated = useSyncExternalStore(subscribeHydration, clientHydrated, serverHydrated);
   const session = useMemo(() => parseSnapshot(rawSession, emptySession), [rawSession]);
 
-  const login = useCallback((data: { name?: string; email?: string }) => {
+  const login = useCallback((data: { name?: string; email?: string; mode?: Session["mode"] }) => {
     const next: Session = { loggedIn: true, ...data };
     setSession(next);
   }, []);

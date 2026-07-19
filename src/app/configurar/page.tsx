@@ -9,7 +9,7 @@ import { useProfile, useSession } from "@/lib/store";
 
 export default function ConfigurarPage() {
   const router = useRouter();
-  const { session, hydrated: sessionHydrated } = useSession();
+  const { session, login, hydrated: sessionHydrated } = useSession();
   const { profile, update, hydrated: profileHydrated } = useProfile();
   const [error, setError] = useState("");
 
@@ -21,8 +21,15 @@ export default function ConfigurarPage() {
     event.preventDefault();
     const form = new FormData(event.currentTarget as HTMLFormElement);
     const career = String(form.get("career") ?? "");
+    const profileName = session.mode === "demo"
+      ? String(form.get("name") ?? "").trim()
+      : (session.name || profile.name).trim();
     const cycle = Number(form.get("cycle") ?? 1);
     const academicPeriod = String(form.get("academicPeriod") ?? "");
+    if (!profileName) {
+      setError("Escribe tu nombre para continuar.");
+      return;
+    }
     if (!career.trim()) {
       setError("Escribe el nombre de tu carrera para continuar.");
       return;
@@ -31,8 +38,9 @@ export default function ConfigurarPage() {
       setError("Usa un periodo válido, por ejemplo 2026-1.");
       return;
     }
+    if (session.mode === "demo") login({ name: profileName, mode: "demo" });
     update({
-      name: session.name || profile.name,
+      name: profileName,
       career: career.trim(),
       cycle,
       academicPeriod,
@@ -78,6 +86,13 @@ export default function ConfigurarPage() {
 
           <form onSubmit={handleSubmit} className="page-enter rounded-3xl border border-border bg-white p-6 shadow-[0_24px_70px_rgba(39,29,18,0.09)] md:p-8">
             <div className="grid gap-5 sm:grid-cols-2">
+              {session.mode === "demo" && (
+                <label className="sm:col-span-2">
+                  <span className="field-label">Nombre para esta demostración</span>
+                  <input name="name" defaultValue={profile.name} placeholder="Ej. Alex Torres" className="field-control" autoFocus />
+                  <span className="field-help">Solo se usará durante esta prueba y se eliminará al cerrar sesión.</span>
+                </label>
+              )}
               <label className="sm:col-span-2">
                 <span className="field-label">Carrera</span>
                 <input name="career" defaultValue={profile.career} placeholder="Ej. Ingeniería de Sistemas e Informática" className="field-control" />
