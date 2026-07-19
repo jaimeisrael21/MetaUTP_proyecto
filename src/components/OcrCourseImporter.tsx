@@ -91,8 +91,8 @@ function candidatesFromText(text: string, documentType: OcrAcademicImport["docum
         source: "ocr" as const,
       }];
     });
+  if (documentType === "grades" || documentType === "academic_summary") return [];
   if (tableRows.length > 0) return tableRows.slice(0, 10);
-  if (documentType === "academic_summary") return [];
   return extractCandidateNames(text).map((name) => ({
     id: crypto.randomUUID(),
     name,
@@ -124,7 +124,7 @@ function extractAcademicImport(text: string, documentType: OcrAcademicImport["do
   const weeklyHoursCurrent = detectedNumber(plain, [/horas semanales(?: actuales)?\s*[:\-]?\s*(\d{1,2}(?:[.,]\d)?)/i]);
   const lower = plain.toLowerCase();
   const academicRank: AcademicRank | undefined = lower.includes("decimo superior") ? "top_tenth" : lower.includes("quinto superior") ? "top_fifth" : lower.includes("tercio superior") ? "top_third" : undefined;
-  const englishIVPassed: TriState | undefined = /ingles iv\s*(?:aprobado|convalidado)/i.test(plain) ? "yes" : undefined;
+  const englishIVPassed: TriState | undefined = /ingles (?:iv|1v)\s*(?:aprobado|convalidado)/i.test(plain) ? "yes" : undefined;
   return {
     metrics: {
       ...(lastPeriodGpa !== undefined ? { lastPeriodGpa } : {}),
@@ -266,10 +266,10 @@ export function OcrCourseImporter({ onImport }: OcrCourseImporterProps) {
       </div>
 
       <div className="mt-5 rounded-xl border border-dashed border-border-strong bg-canvas-soft p-4">
-        <label className="mb-3 block"><span className="field-label">Tipo de captura</span><select value={documentType} onChange={(event) => setDocumentType(event.target.value as OcrAcademicImport["documentType"])} className="field-control cursor-pointer"><option value="schedule">Horario o matrícula</option><option value="grades">Notas del periodo anterior</option><option value="academic_summary">Resumen o constancia académica</option></select></label>
+        <label className="mb-3 block"><span className="field-label">Tipo de captura</span><select value={documentType} onChange={(event) => setDocumentType(event.target.value as OcrAcademicImport["documentType"])} className="field-control cursor-pointer"><option value="schedule">Ficha completa, horario o matrícula</option><option value="grades">Notas del periodo anterior</option><option value="academic_summary">Resumen o constancia académica</option></select></label>
         <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg bg-white px-4 py-3 text-sm font-semibold text-canvas-foreground shadow-sm transition-colors hover:text-primary focus-within:ring-2 focus-within:ring-primary/30">
           <UploadIcon width={17} height={17} />
-          {file ? "Cambiar captura" : "Seleccionar captura del horario"}
+          {file ? "Cambiar captura" : "Seleccionar imagen"}
           <input
             type="file"
             accept="image/jpeg,image/png,image/webp"

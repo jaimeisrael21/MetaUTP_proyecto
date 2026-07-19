@@ -30,7 +30,9 @@ export default function PanelPage() {
   const { profile, update, hydrated: profileHydrated } = useProfile();
   const [entryMethod, setEntryMethod] = useState<"manual" | "ocr" | null>(null);
   const [setupError, setSetupError] = useState("");
-  const courses = profile.courses;
+  const courses = profile.courses.filter(
+    (course) => course.period !== "previous" && course.period !== "historical"
+  );
 
   useEffect(() => {
     if (!sessionHydrated || !profileHydrated) return;
@@ -71,7 +73,10 @@ export default function PanelPage() {
   function importCourses(imported: Course[], academic: OcrAcademicImport) {
     const existing = courses.filter((course) => course.name.trim());
     const names = new Set(existing.map((course) => course.name.trim().toLocaleLowerCase("es")));
-    const unique = imported.filter((course) => {
+    const currentImported = imported.filter(
+      (course) => course.period !== "previous" && course.period !== "historical"
+    );
+    const unique = currentImported.filter((course) => {
       const key = course.name.trim().toLocaleLowerCase("es");
       if (!key || names.has(key)) return false;
       names.add(key);

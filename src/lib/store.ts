@@ -152,12 +152,14 @@ function normalizeProfile(profile: StudentProfile): StudentProfile {
     ...emptyProfile,
     ...profile,
     preferredCategories: profile.preferredCategories ?? [],
-    courses: (profile.courses ?? []).map((course) => ({
-      ...course,
-      period: course.period ?? "current",
-      weeklyHours: course.weeklyHours ?? 0,
-      source: course.source ?? "manual",
-    })),
+    courses: (profile.courses ?? [])
+      .map((course) => ({
+        ...course,
+        period: course.period ?? "current",
+        weeklyHours: course.weeklyHours ?? 0,
+        source: course.source ?? "manual",
+      }))
+      .filter((course) => course.period === "current"),
     academicMetrics: { ...emptyAcademicMetrics, ...(profile.academicMetrics ?? {}) },
     dataProvenance: { ...emptyDataProvenance, ...(profile.dataProvenance ?? {}) },
     facts: { ...emptyProfileFacts, ...(profile.facts ?? {}) },

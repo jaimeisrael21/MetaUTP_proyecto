@@ -34,7 +34,12 @@ export async function persistProfileForAuthenticatedUser(profile: StudentProfile
 
   if (profileError) throw profileError;
 
-  const persistedCourses = profile.courses.filter((course) => course.name.trim() && course.credits > 0);
+  const persistedCourses = profile.courses.filter(
+    (course) =>
+      course.name.trim() &&
+      course.credits > 0 &&
+      (course.period ?? "current") === "current"
+  );
   if (persistedCourses.length > 0) {
     const { error: coursesError } = await supabase.from("courses").upsert(
       persistedCourses.map((course) => ({
