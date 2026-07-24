@@ -72,8 +72,7 @@ function extractCandidateNames(text: string): string[] {
     .slice(0, 10);
 }
 
-function candidatesFromText(text: string, documentType: OcrAcademicImport["documentType"]): Course[] {
-  if (documentType === "academic_summary") return [];
+function candidatesFromText(text: string): Course[] {
   const plain = text.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   const hasGradeColumn = /curso\s+creditos\s+(?:nota|calificacion)/i.test(plain);
   const tableRows = text
@@ -87,7 +86,7 @@ function candidatesFromText(text: string, documentType: OcrAcademicImport["docum
       const credits = Number(match[2].replace(",", "."));
       const secondValue = Number(match[3].replace(",", "."));
       const thirdValue = match[4] ? Number(match[4].replace(",", ".")) : null;
-      const rowIncludesGrade = thirdValue !== null || documentType === "grades" || hasGradeColumn;
+      const rowIncludesGrade = thirdValue !== null || hasGradeColumn;
       const detectedGrade = rowIncludesGrade && secondValue >= 0 && secondValue <= 20
         ? secondValue
         : null;
@@ -129,7 +128,7 @@ function detectedNumber(text: string, patterns: RegExp[]) {
   return undefined;
 }
 
-function extractAcademicImport(text: string, documentType: OcrAcademicImport["documentType"]): OcrAcademicImport {
+function extractAcademicImport(text: string): OcrAcademicImport {
   const plain = text.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   const lastPeriodGpa = detectedNumber(plain, [/promedio(?: ponderado)?(?: del)? periodo(?: anterior)?\s*[:\-]?\s*(\d{1,2}(?:[.,]\d{1,2})?)/i]);
   const cumulativeGpa = detectedNumber(plain, [/promedio(?: ponderado)? acumulado\s*[:\-]?\s*(\d{1,2}(?:[.,]\d{1,2})?)/i]);
@@ -149,7 +148,7 @@ function extractAcademicImport(text: string, documentType: OcrAcademicImport["do
     approvedCredits,
     academicRank,
     englishIVPassed,
-    documentType,
+    documentType: "schedule",
   };
 }
 
@@ -161,8 +160,7 @@ export function OcrCourseImporter({ onImport }: OcrCourseImporterProps) {
   const [rawText, setRawText] = useState("");
   const [candidates, setCandidates] = useState<Course[]>([]);
   const [error, setError] = useState("");
-  const [documentType, setDocumentType] = useState<OcrAcademicImport["documentType"]>("schedule");
-  const [academicImport, setAcademicImport] = useState<OcrAcademicImport>(() => extractAcademicImport("", "schedule"));
+  const [academicImport, setAcademicImport] = useState<OcrAcademicImport>(() => extractAcademicImport(""));
 
   const progressLabel = `${Math.round(progress * 100)}%`;
 
@@ -170,7 +168,7 @@ export function OcrCourseImporter({ onImport }: OcrCourseImporterProps) {
     setError("");
     setRawText("");
     setCandidates([]);
-    setAcademicImport(extractAcademicImport("", documentType));
+    setAcademicImport(extractAcademicImport(""));
     setProgress(0);
 
     if (!nextFile) {
@@ -195,17 +193,6 @@ export function OcrCourseImporter({ onImport }: OcrCourseImporterProps) {
     setPhase("idle");
   }
 
-  function changeDocumentType(nextType: OcrAcademicImport["documentType"]) {
-    setDocumentType(nextType);
-    setPhase("idle");
-    setProgress(0);
-    setStatusText("");
-    setRawText("");
-    setCandidates([]);
-    setAcademicImport(extractAcademicImport("", nextType));
-    setError("");
-  }
-
   async function analyzeImage() {
     if (!file || phase === "processing") return;
 
@@ -225,8 +212,8 @@ export function OcrCourseImporter({ onImport }: OcrCourseImporterProps) {
       });
       const result = await worker.recognize(file);
       const detectedText = result.data.text.trim();
-      const detectedCourses = candidatesFromText(detectedText, documentType);
-      const detectedAcademic = extractAcademicImport(detectedText, documentType);
+      const detectedCourses = candidatesFromText(detectedText);
+      const detectedAcademic = extractAcademicImport(detectedText);
 
       setRawText(detectedText);
       setCandidates(detectedCourses);
@@ -245,8 +232,8 @@ export function OcrCourseImporter({ onImport }: OcrCourseImporterProps) {
   }
 
   function detectAgain() {
-    setCandidates(candidatesFromText(rawText, documentType));
-    setAcademicImport(extractAcademicImport(rawText, documentType));
+    setCandidates(candidatesFromText(rawText));
+    setAcademicImport(extractAcademicImport(rawText));
   }
 
   function updateCandidate(id: string, patch: Partial<Course>) {
@@ -308,7 +295,9 @@ export function OcrCourseImporter({ onImport }: OcrCourseImporterProps) {
       </div>
 
       <div className="mt-5 rounded-xl border border-dashed border-border-strong bg-canvas-soft p-4">
-        <label className="mb-3 block"><span className="field-label">Tipo de captura</span><select value={documentType} onChange={(event) => changeDocumentType(event.target.value as OcrAcademicImport["documentType"])} className="field-control cursor-pointer"><option value="schedule">Ficha completa con cursos y notas</option><option value="grades">Récord de notas del ciclo actual</option><option value="academic_summary">Resumen o constancia académica</option></select></label>
+        <p className="mb-3 text-xs leading-5 text-canvas-foreground/60">
+          Sube una sola ficha consolidada que muestre tus cursos actuales, créditos, notas y resumen académico.
+        </p>
         <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg bg-white px-4 py-3 text-sm font-semibold text-canvas-foreground shadow-sm transition-colors hover:text-primary focus-within:ring-2 focus-within:ring-primary/30">
           <UploadIcon width={17} height={17} />
           {file ? "Cambiar captura" : "Seleccionar imagen"}

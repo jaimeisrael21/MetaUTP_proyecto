@@ -61,6 +61,9 @@ export default function PanelPage() {
 
   const namedCourses = courses.filter((course) => course.name.trim());
   const confirmedCourses = namedCourses.filter((course) => courseValidationError(course, 0) === null);
+  const allCoursesConfirmed = courses.length > 0 && courses.every(
+    (course, index) => courseValidationError(course, index) === null
+  );
   const cycleAverage = weightedAverage(namedCourses);
   const totalCredits = namedCourses.reduce(
     (sum, course) => sum + (Number.isFinite(course.credits) && course.credits > 0 ? course.credits : 0),
@@ -96,6 +99,15 @@ export default function PanelPage() {
   function addCourse() {
     setSetupError("");
     persist([...courses, newCourse()]);
+  }
+
+  function selectEntryMethod(method: "manual" | "ocr") {
+    setSetupError("");
+    if (entryMethod !== method) {
+      const withoutEmptyDrafts = courses.filter((course) => course.name.trim());
+      if (withoutEmptyDrafts.length !== courses.length) persist(withoutEmptyDrafts);
+    }
+    setEntryMethod(method);
   }
 
   function importCourses(imported: Course[], academic: OcrAcademicImport) {
@@ -259,7 +271,7 @@ export default function PanelPage() {
             <button
               type="button"
               aria-pressed={entryMethod === "manual"}
-              onClick={() => setEntryMethod("manual")}
+              onClick={() => selectEntryMethod("manual")}
               className={`method-card ${entryMethod === "manual" ? "method-card--active" : ""}`}
             >
               <span className="method-card__icon"><PencilIcon width={21} height={21} /></span>
@@ -272,7 +284,7 @@ export default function PanelPage() {
             <button
               type="button"
               aria-pressed={entryMethod === "ocr"}
-              onClick={() => setEntryMethod("ocr")}
+              onClick={() => selectEntryMethod("ocr")}
               className={`method-card ${entryMethod === "ocr" ? "method-card--active" : ""}`}
             >
               <span className="method-card__icon"><ScanTextIcon width={21} height={21} /></span>
@@ -392,26 +404,26 @@ export default function PanelPage() {
                 <h2 className="text-lg font-bold text-canvas-foreground">{courses.length} cursos guardados</h2>
                 <p className="mt-1 text-sm text-canvas-foreground/60">Elige “Ingresar manualmente” para revisarlos o usa OCR para importar otra captura.</p>
               </div>
-              <button type="button" onClick={() => setEntryMethod("manual")} className="secondary-button">Revisar cursos</button>
+              <button type="button" onClick={() => selectEntryMethod("manual")} className="secondary-button">Revisar cursos</button>
             </div>
           </section>
         )}
 
         {setupError && <p role="alert" className="mt-6 rounded-xl bg-status-unmet-soft px-4 py-3 text-sm font-semibold text-status-unmet">{setupError}</p>}
-        <section className="mt-8 grid gap-4 rounded-3xl bg-sidebar p-5 text-sidebar-foreground shadow-xl md:grid-cols-[1fr_auto] md:items-center md:p-6">
-          <div>
-            <p className="text-lg font-bold">Tu perfil ya puede empezar a trabajar por ti</p>
-            <p className="mt-1 text-sm leading-6 text-sidebar-muted">
-              {namedCourses.length > 0
-                ? `${namedCourses.length} curso${namedCourses.length === 1 ? "" : "s"} · promedio del ciclo ${cycleAverage ?? "por calcular"} · ${totalCredits} créditos`
-                : "Puedes agregar cursos ahora o continuar con tu ciclo, promedio y créditos acumulados."}
-            </p>
-          </div>
-          <button type="button" onClick={finishSetup} className="primary-button min-w-64">
-            {profile.academicSetupComplete ? "Guardar cambios académicos" : "Continuar con preguntas clave"}
-            <ArrowRightIcon width={18} height={18} />
-          </button>
-        </section>
+        {allCoursesConfirmed && (
+          <section className="mt-8 grid gap-4 rounded-3xl bg-sidebar p-5 text-sidebar-foreground shadow-xl md:grid-cols-[1fr_auto] md:items-center md:p-6">
+            <div>
+              <p className="text-lg font-bold">Tu perfil ya puede empezar a trabajar por ti</p>
+              <p className="mt-1 text-sm leading-6 text-sidebar-muted">
+                {`${confirmedCourses.length} curso${confirmedCourses.length === 1 ? "" : "s"} · promedio del ciclo ${cycleAverage ?? "por calcular"} · ${totalCredits} créditos`}
+              </p>
+            </div>
+            <button type="button" onClick={finishSetup} className="primary-button min-w-64">
+              {profile.academicSetupComplete ? "Guardar cambios académicos" : "Continuar con preguntas clave"}
+              <ArrowRightIcon width={18} height={18} />
+            </button>
+          </section>
+        )}
     </div>
   );
 
