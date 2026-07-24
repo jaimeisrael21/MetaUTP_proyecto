@@ -68,7 +68,7 @@ export interface Course {
   id: string;
   name: string;
   credits: number;
-  grade: number; // 0-20
+  grade: number | null; // 0-20; null = pendiente de confirmar
   period?: "current" | "previous" | "historical";
   weeklyHours?: number;
   source?: "manual" | "ocr" | "demo" | "institutional";
@@ -194,8 +194,8 @@ export interface StudentProfile {
   name: string;
   career: string;
   cycle: number; // ciclo actual, 1-10+
-  cumulativeGpa: number; // promedio ponderado acumulado, 0-20
-  approvedCredits: number; // créditos aprobados acumulados
+  cumulativeGpa: number | null; // promedio ponderado acumulado, 0-20
+  approvedCredits: number | null; // créditos aprobados acumulados
   academicPeriod: string;
   academicMetrics: AcademicMetrics;
   dataProvenance: DataProvenance;
@@ -214,8 +214,8 @@ export const emptyProfile: StudentProfile = {
   name: "",
   career: "",
   cycle: 1,
-  cumulativeGpa: 0,
-  approvedCredits: 0,
+  cumulativeGpa: null,
+  approvedCredits: null,
   academicPeriod: "2026-1",
   academicMetrics: emptyAcademicMetrics,
   dataProvenance: emptyDataProvenance,

@@ -18,7 +18,7 @@ export type Database = {
         Row: {
           created_at: string
           credits: number
-          grade: number
+          grade: number | null
           id: string
           name: string
           period: string
@@ -30,7 +30,7 @@ export type Database = {
         Insert: {
           created_at?: string
           credits: number
-          grade: number
+          grade?: number | null
           id: string
           name: string
           period?: string
@@ -42,7 +42,7 @@ export type Database = {
         Update: {
           created_at?: string
           credits?: number
-          grade?: number
+          grade?: number | null
           id?: string
           name?: string
           period?: string
@@ -58,11 +58,11 @@ export type Database = {
           academic_setup_complete: boolean
           academic_metrics: Json
           academic_period: string
-          approved_credits: number
+          approved_credits: number | null
           career: string | null
           context_configured: boolean
           created_at: string
-          cumulative_gpa: number
+          cumulative_gpa: number | null
           data_provenance: Json
           cycle: number
           full_name: string | null
@@ -79,11 +79,11 @@ export type Database = {
           academic_setup_complete?: boolean
           academic_metrics?: Json
           academic_period?: string
-          approved_credits?: number
+          approved_credits?: number | null
           career?: string | null
           context_configured?: boolean
           created_at?: string
-          cumulative_gpa?: number
+          cumulative_gpa?: number | null
           data_provenance?: Json
           cycle?: number
           full_name?: string | null
@@ -100,11 +100,11 @@ export type Database = {
           academic_setup_complete?: boolean
           academic_metrics?: Json
           academic_period?: string
-          approved_credits?: number
+          approved_credits?: number | null
           career?: string | null
           context_configured?: boolean
           created_at?: string
-          cumulative_gpa?: number
+          cumulative_gpa?: number | null
           data_provenance?: Json
           cycle?: number
           full_name?: string | null

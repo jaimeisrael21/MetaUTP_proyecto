@@ -476,10 +476,17 @@ function formatCompactDate(iso: string): string {
   });
 }
 
-export function weightedAverage(courses: { credits: number; grade: number }[]): number {
-  const totalCredits = courses.reduce((sum, course) => sum + course.credits, 0);
-  if (totalCredits === 0) return 0;
-  const totalPoints = courses.reduce(
+export function weightedAverage(courses: { credits: number; grade: number | null }[]): number | null {
+  const confirmedCourses = courses.filter(
+    (course): course is { credits: number; grade: number } =>
+      Number.isFinite(course.credits) &&
+      course.credits > 0 &&
+      course.grade !== null &&
+      Number.isFinite(course.grade)
+  );
+  const totalCredits = confirmedCourses.reduce((sum, course) => sum + course.credits, 0);
+  if (totalCredits === 0) return null;
+  const totalPoints = confirmedCourses.reduce(
     (sum, course) => sum + course.credits * course.grade,
     0
   );

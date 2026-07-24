@@ -17,7 +17,7 @@ export default function ListoPage() {
   }, [sessionHydrated, hydrated, session.loggedIn, profile.profileRefined, router]);
   if (!hydrated || !profile.profileRefined) return null;
 
-  const knownMetrics = [profile.academicMetrics.lastPeriodGpa, profile.cumulativeGpa || null, profile.approvedCredits || null, profile.academicMetrics.weeklyHoursCurrent].filter((value) => value !== null).length;
+  const knownMetrics = [profile.academicMetrics.lastPeriodGpa, profile.cumulativeGpa, profile.approvedCredits, profile.academicMetrics.weeklyHoursCurrent].filter((value) => value !== null).length;
   return (
     <main className="min-h-screen bg-canvas px-5 py-8 md:px-10 md:py-12">
       <div className="mx-auto max-w-4xl">
@@ -32,7 +32,7 @@ export default function ListoPage() {
           <div className="grid gap-3 p-6 sm:grid-cols-2 md:p-8">
             <div className="summary-inline"><span className="summary-inline__label">Carrera y ciclo</span><strong className="summary-inline__value">{profile.career} · {profile.cycle}.°</strong></div>
             <div className="summary-inline"><span className="summary-inline__label">Periodo</span><strong className="summary-inline__value">{profile.academicPeriod}</strong></div>
-            <div className="summary-inline"><span className="summary-inline__label">Cursos confirmados</span><strong className="summary-inline__value">{profile.courses.filter((course) => course.name.trim()).length}</strong></div>
+            <div className="summary-inline"><span className="summary-inline__label">Cursos confirmados</span><strong className="summary-inline__value">{profile.courses.filter((course) => course.name.trim() && course.grade !== null).length}</strong></div>
             <div className="summary-inline"><span className="summary-inline__label">Métricas disponibles</span><strong className="summary-inline__value">{knownMetrics} de 4 esenciales</strong></div>
           </div>
           <div className="border-t border-border p-6 md:px-8">

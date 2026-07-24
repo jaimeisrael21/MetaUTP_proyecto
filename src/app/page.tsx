@@ -6,6 +6,7 @@ import {
   clearProfile,
   clearSession,
   getProfile,
+  getProfileOwner,
   getSession,
   saveProfile,
   useSession,
@@ -64,7 +65,13 @@ export default function LoginPage() {
 
   async function enterProduct(account: { name: string; email: string }) {
     const previous = getSession();
-    if (previous.mode === "demo" || (previous.email && previous.email !== account.email)) clearProfile();
+    const normalizedEmail = account.email.trim().toLowerCase();
+    const profileOwner = getProfileOwner();
+    if (
+      previous.mode === "demo" ||
+      profileOwner !== normalizedEmail ||
+      (previous.email && previous.email !== normalizedEmail)
+    ) clearProfile();
     login({ ...account, mode: "authenticated" });
     const remoteProfile = await loadProfileForAuthenticatedUser().catch(() => null);
     if (remoteProfile) saveProfile(remoteProfile);
@@ -145,7 +152,7 @@ export default function LoginPage() {
 
   async function enterDemo() {
     const supabase = getSupabaseBrowserClient();
-    if (supabase) await supabase.auth.signOut();
+    if (supabase) await supabase.auth.signOut({ scope: "local" });
     clearProfile();
     clearSession();
     login({ mode: "demo" });
@@ -154,7 +161,7 @@ export default function LoginPage() {
 
   async function resetDemo() {
     const supabase = getSupabaseBrowserClient();
-    if (supabase) await supabase.auth.signOut();
+    if (supabase) await supabase.auth.signOut({ scope: "local" });
     clearProfile();
     clearSession();
     setName("");

@@ -73,31 +73,45 @@ function extractCandidateNames(text: string): string[] {
 }
 
 function candidatesFromText(text: string, documentType: OcrAcademicImport["documentType"]): Course[] {
+  if (documentType === "academic_summary") return [];
+  const plain = text.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const hasGradeColumn = /curso\s+creditos\s+(?:nota|calificacion)/i.test(plain);
   const tableRows = text
     .split(/\r?\n/)
     .map((line) => line.replace(/\b1V\b/g, "IV").trim())
     .flatMap<Course>((line) => {
-      const match = line.match(/^(.+?)\s+(\d{1,2}(?:[.,]\d)?)\s+(\d{1,2}(?:[.,]\d)?)$/);
+      const match = line.match(
+        /^(.+?)\s+(\d{1,2}(?:[.,]\d{1,2})?)\s+(\d{1,2}(?:[.,]\d{1,2})?)(?:\s+(\d{1,2}(?:[.,]\d{1,2})?))?$/
+      );
       if (!match || !/[a-záéíóúñ]{3}/i.test(match[1]) || /^(?:curso|promedio|créditos|horas|estudiante|periodo)/i.test(match[1])) return [];
       const credits = Number(match[2].replace(",", "."));
-      const finalValue = Number(match[3].replace(",", "."));
+      const secondValue = Number(match[3].replace(",", "."));
+      const thirdValue = match[4] ? Number(match[4].replace(",", ".")) : null;
+      const rowIncludesGrade = thirdValue !== null || documentType === "grades" || hasGradeColumn;
+      const detectedGrade = rowIncludesGrade && secondValue >= 0 && secondValue <= 20
+        ? secondValue
+        : null;
+      const detectedWeeklyHours = thirdValue !== null
+        ? thirdValue
+        : rowIncludesGrade
+          ? 0
+          : secondValue;
       return [{
         id: crypto.randomUUID(),
         name: match[1].trim(),
         credits,
-        grade: documentType === "grades" ? finalValue : 0,
-        period: documentType === "grades" ? "previous" as const : "current" as const,
-        weeklyHours: documentType === "schedule" ? finalValue : 0,
+        grade: detectedGrade,
+        period: "current" as const,
+        weeklyHours: detectedWeeklyHours >= 0 && detectedWeeklyHours <= 80 ? detectedWeeklyHours : 0,
         source: "ocr" as const,
       }];
     });
-  if (documentType === "grades" || documentType === "academic_summary") return [];
   if (tableRows.length > 0) return tableRows.slice(0, 10);
   return extractCandidateNames(text).map((name) => ({
     id: crypto.randomUUID(),
     name,
     credits: 0,
-    grade: 0,
+    grade: null,
     period: "current",
     weeklyHours: 0,
     source: "ocr",
@@ -156,6 +170,7 @@ export function OcrCourseImporter({ onImport }: OcrCourseImporterProps) {
     setError("");
     setRawText("");
     setCandidates([]);
+    setAcademicImport(extractAcademicImport("", documentType));
     setProgress(0);
 
     if (!nextFile) {
@@ -178,6 +193,17 @@ export function OcrCourseImporter({ onImport }: OcrCourseImporterProps) {
 
     setFile(nextFile);
     setPhase("idle");
+  }
+
+  function changeDocumentType(nextType: OcrAcademicImport["documentType"]) {
+    setDocumentType(nextType);
+    setPhase("idle");
+    setProgress(0);
+    setStatusText("");
+    setRawText("");
+    setCandidates([]);
+    setAcademicImport(extractAcademicImport("", nextType));
+    setError("");
   }
 
   async function analyzeImage() {
@@ -233,6 +259,22 @@ export function OcrCourseImporter({ onImport }: OcrCourseImporterProps) {
 
   function confirmImport() {
     const validCourses = candidates.filter((course) => course.name.trim());
+    const invalidCourse = validCourses.find(
+      (course) =>
+        !Number.isFinite(course.credits) ||
+        course.credits <= 0 ||
+        course.credits > 30 ||
+        course.grade === null ||
+        !Number.isInteger(course.grade) ||
+        course.grade < 0 ||
+        course.grade > 20
+    );
+    if (invalidCourse) {
+      setError(
+        `${invalidCourse.name}: confirma los créditos y una nota entera entre 0 y 20 antes de importar.`
+      );
+      return;
+    }
     const hasAcademicData = Object.keys(academicImport.metrics).length > 0 || academicImport.cumulativeGpa !== undefined || academicImport.approvedCredits !== undefined || academicImport.academicRank !== undefined || academicImport.englishIVPassed !== undefined;
     if (validCourses.length === 0 && !hasAcademicData) {
       setError("No encontramos cursos ni métricas académicas. Revisa el texto antes de importarlo.");
@@ -259,14 +301,14 @@ export function OcrCourseImporter({ onImport }: OcrCourseImporterProps) {
             Importar una captura con OCR
           </h2>
           <p className="mt-1 text-sm leading-relaxed text-canvas-foreground/60">
-            MetaUTP lee la imagen en tu navegador, propone nombres de cursos y te pide
-            revisar todo antes de guardar. La captura no se sube a un servidor.
+            MetaUTP lee la imagen en tu navegador, propone cursos, créditos y notas, y te
+            pide revisar todo antes de guardar. La captura no se sube a un servidor.
           </p>
         </div>
       </div>
 
       <div className="mt-5 rounded-xl border border-dashed border-border-strong bg-canvas-soft p-4">
-        <label className="mb-3 block"><span className="field-label">Tipo de captura</span><select value={documentType} onChange={(event) => setDocumentType(event.target.value as OcrAcademicImport["documentType"])} className="field-control cursor-pointer"><option value="schedule">Ficha completa, horario o matrícula</option><option value="grades">Notas del periodo anterior</option><option value="academic_summary">Resumen o constancia académica</option></select></label>
+        <label className="mb-3 block"><span className="field-label">Tipo de captura</span><select value={documentType} onChange={(event) => changeDocumentType(event.target.value as OcrAcademicImport["documentType"])} className="field-control cursor-pointer"><option value="schedule">Ficha completa con cursos y notas</option><option value="grades">Récord de notas del ciclo actual</option><option value="academic_summary">Resumen o constancia académica</option></select></label>
         <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg bg-white px-4 py-3 text-sm font-semibold text-canvas-foreground shadow-sm transition-colors hover:text-primary focus-within:ring-2 focus-within:ring-primary/30">
           <UploadIcon width={17} height={17} />
           {file ? "Cambiar captura" : "Seleccionar imagen"}
@@ -274,6 +316,9 @@ export function OcrCourseImporter({ onImport }: OcrCourseImporterProps) {
             type="file"
             accept="image/jpeg,image/png,image/webp"
             className="sr-only"
+            onClick={(event) => {
+              event.currentTarget.value = "";
+            }}
             onChange={(event) => chooseFile(event.target.files?.[0] ?? null)}
           />
         </label>
@@ -361,7 +406,7 @@ export function OcrCourseImporter({ onImport }: OcrCourseImporterProps) {
               <div>
                 <h3 className="text-sm font-semibold text-canvas-foreground">Cursos propuestos</h3>
                 <p className="mt-0.5 text-xs text-canvas-foreground/50">
-                  Corrige nombres y completa créditos y notas. Empiezan en 0 para no presentarlos como si el OCR los hubiera confirmado.
+                  Revisa nombres, créditos y notas. Si un dato no se reconoce, quedará pendiente hasta que lo confirmes.
                 </p>
               </div>
               <span className="text-xs font-semibold text-primary">{candidates.length} detectados</span>
@@ -382,6 +427,9 @@ export function OcrCourseImporter({ onImport }: OcrCourseImporterProps) {
                     <input
                       type="number"
                       min={0}
+                      max={30}
+                      step={1}
+                      inputMode="numeric"
                       value={course.credits}
                       onChange={(event) => updateCandidate(course.id, { credits: Number(event.target.value) })}
                       className="w-14 rounded-lg border border-border-strong bg-white px-2 py-2 text-sm text-canvas-foreground outline-none focus:border-primary"
@@ -393,9 +441,11 @@ export function OcrCourseImporter({ onImport }: OcrCourseImporterProps) {
                       type="number"
                       min={0}
                       max={20}
-                      step={0.1}
-                      value={course.grade}
-                      onChange={(event) => updateCandidate(course.id, { grade: Number(event.target.value) })}
+                      step={1}
+                      inputMode="numeric"
+                      value={course.grade ?? ""}
+                      placeholder="—"
+                      onChange={(event) => updateCandidate(course.id, { grade: event.target.value === "" ? null : Number(event.target.value) })}
                       className="w-14 rounded-lg border border-border-strong bg-white px-2 py-2 text-sm text-canvas-foreground outline-none focus:border-primary"
                     />
                   </label>

@@ -93,7 +93,7 @@ export function Sidebar() {
             type="button"
             onClick={async () => {
               const supabase = getSupabaseBrowserClient();
-              if (supabase) await supabase.auth.signOut();
+              if (supabase) await supabase.auth.signOut({ scope: "local" });
               if (session.mode === "demo") clearProfile();
               logout();
               router.push("/");

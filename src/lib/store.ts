@@ -17,6 +17,7 @@ import {
 import { persistProfileForAuthenticatedUser } from "@/lib/supabase/profile-sync";
 
 const PROFILE_KEY = "metautp:profile";
+const PROFILE_OWNER_KEY = "metautp:profile-owner";
 const SESSION_KEY = "metautp:session";
 const STORE_EVENT = "metautp:storage-change";
 
@@ -58,7 +59,15 @@ export function getProfile(): StudentProfile {
 
 export function saveProfile(profile: StudentProfile) {
   writeJson(PROFILE_KEY, profile);
-  if (getSession().mode === "demo") return;
+  if (typeof window === "undefined") return;
+  const session = getSession();
+  if (session.mode === "demo") {
+    window.localStorage.removeItem(PROFILE_OWNER_KEY);
+    return;
+  }
+  if (session.mode === "authenticated" && session.email) {
+    window.localStorage.setItem(PROFILE_OWNER_KEY, session.email.trim().toLowerCase());
+  }
   void persistProfileForAuthenticatedUser(profile).catch(() => {
     // La copia local mantiene el recorrido disponible si la red o Supabase fallan.
   });
@@ -73,7 +82,13 @@ export function updateProfile(patch: Partial<StudentProfile>): StudentProfile {
 export function clearProfile() {
   if (typeof window === "undefined") return;
   window.localStorage.removeItem(PROFILE_KEY);
+  window.localStorage.removeItem(PROFILE_OWNER_KEY);
   window.dispatchEvent(new CustomEvent(STORE_EVENT, { detail: PROFILE_KEY }));
+}
+
+export function getProfileOwner() {
+  if (typeof window === "undefined") return null;
+  return window.localStorage.getItem(PROFILE_OWNER_KEY);
 }
 
 export function getSession(): Session {
@@ -152,9 +167,12 @@ function normalizeProfile(profile: StudentProfile): StudentProfile {
     ...emptyProfile,
     ...profile,
     preferredCategories: profile.preferredCategories ?? [],
+    cumulativeGpa: typeof profile.cumulativeGpa === "number" ? profile.cumulativeGpa : null,
+    approvedCredits: typeof profile.approvedCredits === "number" ? profile.approvedCredits : null,
     courses: (profile.courses ?? [])
       .map((course) => ({
         ...course,
+        grade: typeof course.grade === "number" ? course.grade : null,
         period: course.period ?? "current",
         weeklyHours: course.weeklyHours ?? 0,
         source: course.source ?? "manual",

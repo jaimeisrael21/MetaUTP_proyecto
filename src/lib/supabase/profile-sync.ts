@@ -38,6 +38,8 @@ export async function persistProfileForAuthenticatedUser(profile: StudentProfile
     (course) =>
       course.name.trim() &&
       course.credits > 0 &&
+      course.credits <= 30 &&
+      (course.grade === null || (course.grade >= 0 && course.grade <= 20)) &&
       (course.period ?? "current") === "current"
   );
   if (persistedCourses.length > 0) {
@@ -85,12 +87,12 @@ export async function loadProfileForAuthenticatedUser(): Promise<StudentProfile 
     name: stored.full_name ?? (user.user_metadata.full_name as string | undefined) ?? "",
     career: stored.career ?? "",
     cycle: stored.cycle,
-    cumulativeGpa: Number(stored.cumulative_gpa),
+    cumulativeGpa: stored.cumulative_gpa === null ? null : Number(stored.cumulative_gpa),
     approvedCredits: stored.approved_credits,
     academicPeriod: stored.academic_period,
     academicMetrics: { ...emptyAcademicMetrics, ...metrics },
     dataProvenance: { ...emptyDataProvenance, ...provenance },
-    courses: (storedCourses ?? []).map((course) => ({ id: course.id, name: course.name, credits: Number(course.credits), grade: Number(course.grade), period: course.period as "current" | "previous" | "historical", weeklyHours: Number(course.weekly_hours), source: course.source as "manual" | "ocr" | "demo" | "institutional" })),
+    courses: (storedCourses ?? []).map((course) => ({ id: course.id, name: course.name, credits: Number(course.credits), grade: course.grade === null ? null : Number(course.grade), period: course.period as "current" | "previous" | "historical", weeklyHours: Number(course.weekly_hours), source: course.source as "manual" | "ocr" | "demo" | "institutional" })),
     preferredCategories: stored.preferred_categories as StudentProfile["preferredCategories"],
     facts: { ...emptyProfileFacts, ...facts },
     goal: stored.goal as StudentProfile["goal"],

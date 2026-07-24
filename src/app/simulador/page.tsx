@@ -51,17 +51,30 @@ function SimuladorContent() {
   const requiredGrade = useMemo(() => {
     const target = parseFloat(targetGpa.replace(",", "."));
     const credits = parseFloat(courseCredits.replace(",", "."));
-    if (Number.isNaN(target) || Number.isNaN(credits) || credits <= 0) return null;
+    if (
+      Number.isNaN(target) ||
+      Number.isNaN(credits) ||
+      credits <= 0 ||
+      profile.approvedCredits === null ||
+      profile.cumulativeGpa === null
+    ) return null;
     const totalCredits = profile.approvedCredits + credits;
     const grade = (target * totalCredits - profile.cumulativeGpa * profile.approvedCredits) / credits;
     return grade;
   }, [targetGpa, courseCredits, profile.approvedCredits, profile.cumulativeGpa]);
 
   const cycleProjection = useMemo(() => {
-    const namedCourses = profile.courses.filter((c) => c.name.trim());
-    if (namedCourses.length === 0) return null;
-    const cycleAvg = weightedAverage(namedCourses);
-    const cycleCredits = namedCourses.reduce((s, c) => s + c.credits, 0);
+    const confirmedCourses = profile.courses.filter(
+      (course) => course.name.trim() && course.grade !== null && course.credits > 0
+    );
+    if (
+      confirmedCourses.length === 0 ||
+      profile.approvedCredits === null ||
+      profile.cumulativeGpa === null
+    ) return null;
+    const cycleAvg = weightedAverage(confirmedCourses);
+    if (cycleAvg === null) return null;
+    const cycleCredits = confirmedCourses.reduce((sum, course) => sum + course.credits, 0);
     const totalCredits = profile.approvedCredits + cycleCredits;
     const projected =
       totalCredits === 0
@@ -92,8 +105,8 @@ function SimuladorContent() {
             : "Planifica cómo acercarte a tu meta"}
         </h1>
         <p className="mt-2 text-sm text-canvas-foreground/60">
-          Cálculo con tu promedio actual ({profile.cumulativeGpa}) y tus {profile.approvedCredits}{" "}
-          créditos aprobados. Es una proyección tuya, no una nota oficial.
+          Cálculo con tu promedio actual ({profile.cumulativeGpa ?? "por confirmar"}) y tus {profile.approvedCredits ?? "—"} créditos
+          aprobados. Es una proyección tuya, no una nota oficial.
         </p>
 
         <div className="mt-6 flex gap-2">

@@ -21,7 +21,24 @@ import { weightedAverage } from "@/lib/matching";
 import { useProfile, useSession } from "@/lib/store";
 
 function newCourse(): Course {
-  return { id: crypto.randomUUID(), name: "", credits: 3, grade: 14, period: "current", weeklyHours: 0, source: "manual" };
+  return { id: crypto.randomUUID(), name: "", credits: 3, grade: null, period: "current", weeklyHours: 0, source: "manual" };
+}
+
+function normalizedCourseName(name: string) {
+  return name.trim().toLocaleLowerCase("es");
+}
+
+function courseValidationError(course: Course, position: number) {
+  const label = course.name.trim() || `Curso ${position + 1}`;
+  if (!course.name.trim()) return `Completa el nombre del curso ${position + 1} o elimínalo.`;
+  if (!Number.isFinite(course.credits) || course.credits <= 0 || course.credits > 30) {
+    return `${label}: ingresa créditos válidos entre 1 y 30.`;
+  }
+  if (course.grade === null) return `${label}: ingresa o confirma la nota.`;
+  if (!Number.isInteger(course.grade) || course.grade < 0 || course.grade > 20) {
+    return `${label}: la nota debe ser un número entero entre 0 y 20.`;
+  }
+  return null;
 }
 
 export default function PanelPage() {
@@ -42,47 +59,75 @@ export default function PanelPage() {
 
   if (!profileHydrated || !profile.onboarded) return null;
 
-  const validCourses = courses.filter((course) => course.name.trim());
-  const cycleAverage = weightedAverage(validCourses);
-  const totalCredits = validCourses.reduce((sum, course) => sum + (course.credits || 0), 0);
+  const namedCourses = courses.filter((course) => course.name.trim());
+  const confirmedCourses = namedCourses.filter((course) => courseValidationError(course, 0) === null);
+  const cycleAverage = weightedAverage(namedCourses);
+  const totalCredits = namedCourses.reduce(
+    (sum, course) => sum + (Number.isFinite(course.credits) && course.credits > 0 ? course.credits : 0),
+    0
+  );
 
   function persist(next: Course[]) {
-    const valid = next.filter((course) => course.name.trim());
+    const named = next.filter((course) => course.name.trim());
+    const currentPeriodCredits = named.reduce(
+      (sum, course) => sum + (Number.isFinite(course.credits) && course.credits > 0 ? course.credits : 0),
+      0
+    );
     update({
       courses: next,
       academicMetrics: {
         ...profile.academicMetrics,
-        currentCycleGpa: valid.length > 0 ? weightedAverage(valid) : profile.academicMetrics.currentCycleGpa,
-        currentPeriodCredits: valid.length > 0 ? valid.reduce((sum, course) => sum + (course.credits || 0), 0) : profile.academicMetrics.currentPeriodCredits,
+        currentCycleGpa: weightedAverage(named),
+        currentPeriodCredits: named.length > 0 ? currentPeriodCredits : null,
       },
     });
   }
 
   function updateCourse(id: string, patch: Partial<Course>) {
+    setSetupError("");
     persist(courses.map((course) => (course.id === id ? { ...course, ...patch } : course)));
   }
 
   function removeCourse(id: string) {
+    setSetupError("");
     persist(courses.filter((course) => course.id !== id));
   }
 
   function addCourse() {
+    setSetupError("");
     persist([...courses, newCourse()]);
   }
 
   function importCourses(imported: Course[], academic: OcrAcademicImport) {
     const existing = courses.filter((course) => course.name.trim());
-    const names = new Set(existing.map((course) => course.name.trim().toLocaleLowerCase("es")));
     const currentImported = imported.filter(
       (course) => course.period !== "previous" && course.period !== "historical"
     );
-    const unique = currentImported.filter((course) => {
-      const key = course.name.trim().toLocaleLowerCase("es");
-      if (!key || names.has(key)) return false;
-      names.add(key);
-      return true;
+    const nextCourses = [...existing];
+    currentImported.forEach((course) => {
+      const key = normalizedCourseName(course.name);
+      if (!key) return;
+      const matchIndex = nextCourses.findIndex(
+        (candidate) => normalizedCourseName(candidate.name) === key
+      );
+      if (matchIndex === -1) {
+        nextCourses.push(course);
+        return;
+      }
+      const previous = nextCourses[matchIndex];
+      nextCourses[matchIndex] = {
+        ...previous,
+        name: course.name.trim(),
+        credits: course.credits > 0 ? course.credits : previous.credits,
+        grade: course.grade ?? previous.grade,
+        weeklyHours: (course.weeklyHours ?? 0) > 0 ? course.weeklyHours : previous.weeklyHours,
+        source: "ocr",
+      };
     });
-    const nextCourses = [...existing, ...unique];
+    const currentPeriodCredits = nextCourses.reduce(
+      (sum, course) => sum + (Number.isFinite(course.credits) && course.credits > 0 ? course.credits : 0),
+      0
+    );
     update({
       courses: nextCourses,
       cumulativeGpa: academic.cumulativeGpa ?? profile.cumulativeGpa,
@@ -90,10 +135,8 @@ export default function PanelPage() {
       academicMetrics: {
         ...profile.academicMetrics,
         ...academic.metrics,
-        ...(nextCourses.length > 0 ? {
-          currentCycleGpa: weightedAverage(nextCourses),
-          currentPeriodCredits: nextCourses.reduce((sum, course) => sum + (course.credits || 0), 0),
-        } : {}),
+        currentCycleGpa: weightedAverage(nextCourses),
+        currentPeriodCredits: nextCourses.length > 0 ? currentPeriodCredits : null,
       },
       facts: {
         ...profile.facts,
@@ -106,11 +149,22 @@ export default function PanelPage() {
         confirmedAt: new Date().toISOString(),
       },
     });
+    setSetupError("");
     setEntryMethod("ocr");
   }
 
   function finishSetup() {
-    const hasAcademicData = validCourses.length > 0 || profile.cumulativeGpa > 0 || profile.approvedCredits > 0 || Object.values(profile.academicMetrics).some((value) => value !== null && value > 0);
+    const invalidCourse = courses
+      .map((course, index) => courseValidationError(course, index))
+      .find((message) => message !== null);
+    if (invalidCourse) {
+      setSetupError(invalidCourse);
+      return;
+    }
+    const hasAcademicData = confirmedCourses.length > 0 ||
+      profile.cumulativeGpa !== null ||
+      profile.approvedCredits !== null ||
+      Object.values(profile.academicMetrics).some((value) => value !== null);
     if (!hasAcademicData) {
       setSetupError("Registra al menos un curso o una métrica académica antes de continuar.");
       return;
@@ -195,8 +249,8 @@ export default function PanelPage() {
                 role="tooltip"
                 className="pointer-events-none absolute right-0 top-full z-20 mt-2 w-72 translate-y-1 rounded-xl bg-sidebar px-4 py-3 text-sm leading-6 text-sidebar-foreground opacity-0 shadow-xl transition group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:translate-y-0 group-focus-within:opacity-100"
               >
-                Usa una captura legible que muestre los nombres de tus cursos. El OCR propone
-                esos nombres; tú completas y confirmas las notas y los créditos antes de guardar.
+                Usa una sola captura legible con curso, créditos y nota. El OCR propone los datos
+                detectados y tú los revisas antes de guardar.
               </div>
             </div>
           </div>
@@ -244,8 +298,8 @@ export default function PanelPage() {
             </div>
             <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <label><span className="field-label flex min-h-10 items-end">Promedio periodo anterior</span><input type="number" min={0} max={20} step="0.01" value={profile.academicMetrics.lastPeriodGpa ?? ""} onChange={(event) => updateMetric("lastPeriodGpa", event.target.value)} disabled={entryMethod !== "manual"} className="field-control disabled:bg-canvas-soft disabled:text-canvas-foreground/65" placeholder="Por confirmar" /></label>
-              <label><span className="field-label flex min-h-10 items-end">Promedio acumulado según tu récord</span><input type="number" min={0} max={20} step="0.01" value={profile.cumulativeGpa || ""} onChange={(event) => update({ cumulativeGpa: numericValue(event.target.value) ?? 0 })} disabled={entryMethod !== "manual"} className="field-control disabled:bg-canvas-soft disabled:text-canvas-foreground/65" placeholder="Por confirmar" /></label>
-              <label><span className="field-label flex min-h-10 items-end">Créditos aprobados acumulados</span><input type="number" min={0} value={profile.approvedCredits || ""} onChange={(event) => update({ approvedCredits: numericValue(event.target.value) ?? 0 })} disabled={entryMethod !== "manual"} className="field-control disabled:bg-canvas-soft disabled:text-canvas-foreground/65" placeholder="Por confirmar" /></label>
+              <label><span className="field-label flex min-h-10 items-end">Promedio acumulado según tu récord</span><input type="number" min={0} max={20} step="0.01" value={profile.cumulativeGpa ?? ""} onChange={(event) => update({ cumulativeGpa: numericValue(event.target.value) })} disabled={entryMethod !== "manual"} className="field-control disabled:bg-canvas-soft disabled:text-canvas-foreground/65" placeholder="Por confirmar" /></label>
+              <label><span className="field-label flex min-h-10 items-end">Créditos aprobados acumulados</span><input type="number" min={0} value={profile.approvedCredits ?? ""} onChange={(event) => update({ approvedCredits: numericValue(event.target.value) })} disabled={entryMethod !== "manual"} className="field-control disabled:bg-canvas-soft disabled:text-canvas-foreground/65" placeholder="Por confirmar" /></label>
               <label><span className="field-label flex min-h-10 items-end">Horas semanales actuales</span><input type="number" min={0} max={80} step="0.5" value={profile.academicMetrics.weeklyHoursCurrent ?? ""} onChange={(event) => updateMetric("weeklyHoursCurrent", event.target.value)} disabled={entryMethod !== "manual"} className="field-control disabled:bg-canvas-soft disabled:text-canvas-foreground/65" placeholder="Por confirmar" /></label>
             </div>
             <p className="mt-3 text-xs leading-5 text-canvas-foreground/50">El promedio y los créditos del ciclo actual se calculan únicamente con los cursos que confirmes.</p>
@@ -295,6 +349,9 @@ export default function PanelPage() {
                     <input
                       type="number"
                       min={0}
+                      max={30}
+                      step={1}
+                      inputMode="numeric"
                       value={course.credits}
                       onChange={(event) => updateCourse(course.id, { credits: Number(event.target.value) })}
                       className="field-control mt-1"
@@ -306,9 +363,11 @@ export default function PanelPage() {
                       type="number"
                       min={0}
                       max={20}
-                      step={0.1}
-                      value={course.grade}
-                      onChange={(event) => updateCourse(course.id, { grade: Number(event.target.value) })}
+                      step={1}
+                      inputMode="numeric"
+                      value={course.grade ?? ""}
+                      placeholder="—"
+                      onChange={(event) => updateCourse(course.id, { grade: numericValue(event.target.value) })}
                       className="field-control mt-1"
                     />
                   </label>
@@ -343,8 +402,8 @@ export default function PanelPage() {
           <div>
             <p className="text-lg font-bold">Tu perfil ya puede empezar a trabajar por ti</p>
             <p className="mt-1 text-sm leading-6 text-sidebar-muted">
-              {validCourses.length > 0
-                ? `${validCourses.length} curso${validCourses.length === 1 ? "" : "s"} · promedio del ciclo ${cycleAverage || "por calcular"} · ${totalCredits} créditos`
+              {namedCourses.length > 0
+                ? `${namedCourses.length} curso${namedCourses.length === 1 ? "" : "s"} · promedio del ciclo ${cycleAverage ?? "por calcular"} · ${totalCredits} créditos`
                 : "Puedes agregar cursos ahora o continuar con tu ciclo, promedio y créditos acumulados."}
             </p>
           </div>
