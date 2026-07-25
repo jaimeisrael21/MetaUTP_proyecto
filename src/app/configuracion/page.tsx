@@ -67,9 +67,9 @@ function ContextField({
 }) {
   const controlId = useId();
   return (
-    <div>
-      <span className="field-label flex items-start">
-        <label htmlFor={controlId}>{label}</label>
+    <div className="min-w-0">
+      <span className="field-label flex items-start sm:min-h-12">
+        <label htmlFor={controlId} className="min-w-0 leading-5">{label}</label>
         {help && (
           <InfoTooltip label={label} sourceLabel={help.sourceLabel} sourceUrl={help.sourceUrl}>
             {help.text}
