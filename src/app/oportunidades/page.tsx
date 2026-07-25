@@ -16,9 +16,15 @@ import { OpportunityCard } from "@/components/OpportunityCard";
 import { CertificationOpportunityCard } from "@/components/CertificationOpportunityCard";
 import { CatalogPeriodNotice } from "@/components/CatalogPeriodNotice";
 import { CURRENT_ACADEMIC_PERIOD } from "@/data/academic-period";
-import { certificationPaths, pathMatchesCareer, type CertificationPath } from "@/data/certifications";
+import { certificationPaths, type CertificationPath } from "@/data/certifications";
 import { opportunities } from "@/data/opportunities";
 import type { OpportunityCategory } from "@/data/types";
+import {
+  evaluateCertification,
+  isCertificationRelevant,
+  rankCertification,
+  type CertificationEvaluation,
+} from "@/lib/certification-matching";
 import { evaluateOpportunity, isPersonalizedOpportunityVisible, rankOpportunity } from "@/lib/matching";
 import { useProfile, useSession } from "@/lib/store";
 
@@ -36,6 +42,7 @@ type CatalogItem =
   | {
       kind: "certification";
       path: CertificationPath;
+      evaluation: CertificationEvaluation;
       catalogIndex: number;
       score: number;
     };
@@ -93,8 +100,11 @@ export default function OportunidadesPage() {
   );
 
   const personalizedCertifications = useMemo(
-    () => certificationPaths.filter((path) => pathMatchesCareer(path, profile.career)),
-    [profile.career]
+    () =>
+      certificationPaths
+        .filter((path) => isCertificationRelevant(path, profile))
+        .map((path) => ({ path, evaluation: evaluateCertification(path, profile) })),
+    [profile]
   );
 
   const orderedCatalog = useMemo(() => {
@@ -108,29 +118,38 @@ export default function OportunidadesPage() {
             score: item.ranking.score,
           }));
     const certificationItems: CatalogItem[] = category === "Todas" || category === "Certificaciones"
-      ? personalizedCertifications.map((path, index) => ({
+      ? personalizedCertifications.map(({ path, evaluation }, index) => ({
           kind: "certification" as const,
           path,
+          evaluation,
           catalogIndex: opportunities.length + index,
-          score: path.careers ? 64 : 44,
+          score: rankCertification(path, evaluation, profile),
         }))
       : [];
     return [...opportunityItems, ...certificationItems].sort(
       (first, second) => second.score - first.score || first.catalogIndex - second.catalogIndex
     );
-  }, [category, personalized, personalizedCertifications]);
+  }, [category, personalized, personalizedCertifications, profile]);
 
   const totalPages = Math.max(1, Math.ceil(orderedCatalog.length / PAGE_SIZE));
   const pageItems = orderedCatalog.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const summary = useMemo(
     () => ({
-      recommended: personalized.filter(({ evaluation }) => evaluation.matchState === "recommended").length,
-      close: personalized.filter(({ evaluation }) => evaluation.matchState === "close").length,
-      needsData: personalized.filter(({ evaluation }) => evaluation.matchState === "needs_data").length,
-      official: personalized.filter(({ evaluation }) => evaluation.matchState === "official_validation").length,
+      recommended:
+        personalized.filter(({ evaluation }) => evaluation.matchState === "recommended").length +
+        personalizedCertifications.filter(({ evaluation }) => evaluation.matchState === "recommended").length,
+      close:
+        personalized.filter(({ evaluation }) => evaluation.matchState === "close").length +
+        personalizedCertifications.filter(({ evaluation }) => evaluation.matchState === "close").length,
+      needsData:
+        personalized.filter(({ evaluation }) => evaluation.matchState === "needs_data").length +
+        personalizedCertifications.filter(({ evaluation }) => evaluation.matchState === "needs_data").length,
+      official:
+        personalized.filter(({ evaluation }) => evaluation.matchState === "official_validation").length +
+        personalizedCertifications.filter(({ evaluation }) => evaluation.matchState === "official_validation").length,
     }),
-    [personalized]
+    [personalized, personalizedCertifications]
   );
 
   function chooseCategory(next: CatalogCategory) {
@@ -238,7 +257,12 @@ export default function OportunidadesPage() {
                 animationIndex={index}
               />
             ) : (
-              <CertificationOpportunityCard key={item.path.id} path={item.path} animationIndex={index} />
+              <CertificationOpportunityCard
+                key={item.path.id}
+                path={item.path}
+                evaluation={item.evaluation}
+                animationIndex={index}
+              />
             ))}
           </div>
 

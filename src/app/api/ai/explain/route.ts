@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { generateText } from "ai";
 import { z } from "zod";
+import { certificationPaths } from "@/data/certifications";
 import { opportunities } from "@/data/opportunities";
 
 export const runtime = "nodejs";
@@ -34,15 +35,29 @@ export async function POST(request: NextRequest) {
   const parsed = requestSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return Response.json({ error: "Los datos enviados no son válidos." }, { status: 400 });
   const opportunity = opportunities.find((item) => item.id === parsed.data.opportunityId);
-  if (!opportunity) return Response.json({ error: "Oportunidad no encontrada." }, { status: 404 });
-  const safeFallback = fallback(opportunity.title, parsed.data.signals, opportunity.actionNote);
+  const certification = certificationPaths.find((item) => item.id === parsed.data.opportunityId);
+  if (!opportunity && !certification) return Response.json({ error: "Oportunidad no encontrada." }, { status: 404 });
+  const subject = opportunity
+    ? {
+        title: opportunity.title,
+        category: opportunity.category,
+        actionNote: opportunity.actionNote,
+        source: opportunity.source.label,
+      }
+    : {
+        title: certification!.title,
+        category: "Certificaciones",
+        actionNote: certification!.nextStep,
+        source: certification!.sources.map((source) => source.label).join("; "),
+      };
+  const safeFallback = fallback(subject.title, parsed.data.signals, subject.actionNote);
   try {
     const result = await generateText({
       model: process.env.AI_GATEWAY_MODEL?.replace(/^\uFEFF/, "").trim() || "alibaba/qwen3.5-flash",
       abortSignal: AbortSignal.timeout(12_000), maxRetries: 0, temperature: 0, maxOutputTokens: 420,
       providerOptions: { alibaba: { enableThinking: false }, gateway: { tags: ["feature:opportunity-explanation", "app:metautp"] } },
       system: "Eres el asistente explicativo de MetaUTP. Responde en español peruano claro. No inventes requisitos, fechas, probabilidades ni beneficios. No afirmes admisión. Los estados recibidos ya fueron calculados por reglas y son tu única base. Cuando falte confirmación, recomienda consultar al SAE; escribe exactamente 'el SAE' y no expandas ni redefinas el acrónimo. Devuelve solo JSON válido.",
-      prompt: `Devuelve {"summary":"texto","nextSteps":["texto"],"caveat":"texto"}, con 1 a 3 pasos. Contexto no sensible: ${JSON.stringify({ opportunity: { title: opportunity.title, category: opportunity.category, actionNote: opportunity.actionNote, source: opportunity.source.label, window: parsed.data.windowLabel }, result: parsed.data.signals })}`,
+      prompt: `Devuelve {"summary":"texto","nextSteps":["texto"],"caveat":"texto"}, con 1 a 3 pasos. Contexto no sensible: ${JSON.stringify({ opportunity: { ...subject, window: parsed.data.windowLabel }, result: parsed.data.signals })}`,
     });
     return Response.json({ ...parseExplanation(result.text), mode: "ai" as const });
   } catch { return Response.json({ ...safeFallback, mode: "rules" as const }); }
