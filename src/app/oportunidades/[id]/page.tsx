@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { notFound, useParams, useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { StatusBadge } from "@/components/StatusBadge";
 import { AiOpportunityGuide } from "@/components/AiOpportunityGuide";
@@ -15,7 +15,6 @@ import {
 import type { OpportunityMatchState } from "@/lib/matching";
 import { useProfile, useSession } from "@/lib/store";
 import {
-  AlertIcon,
   ChevronLeftIcon,
   ExternalLinkIcon,
 } from "@/components/icons";
@@ -39,11 +38,33 @@ const MATCH_LABEL: Record<OpportunityMatchState, { label: string; style: string 
   general_catalog: { label: "Catálogo general", style: "bg-canvas-soft text-canvas-foreground/62" },
 };
 
+function isAcademicPerformanceRequirement(description: string, type: string) {
+  const normalized = description
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+  return (
+    type === "numeric_gpa" ||
+    normalized.includes("promedio") ||
+    normalized.includes("nota") ||
+    normalized.includes("merito academico") ||
+    normalized.includes("orden de merito")
+  );
+}
+
+function normalizedCost(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
 export default function OportunidadDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const { session, hydrated: sessionHydrated } = useSession();
   const { profile, hydrated: profileHydrated } = useProfile();
+  const [conditionsOpen, setConditionsOpen] = useState(false);
   const opportunity = opportunities.find((item) => item.id === params.id);
 
   useEffect(() => {
@@ -71,15 +92,22 @@ export default function OportunidadDetailPage() {
   const match = MATCH_LABEL[evaluation.matchState];
   const totalSignals = evaluation.comparisonTotal;
   const confirmedSignals = evaluation.confirmedCount;
-  const academicSourceLabel = profile.dataProvenance.academicSource === "institutional"
-    ? "datos verificados por UTP"
-    : profile.dataProvenance.academicSource === "demo"
-      ? "un escenario de demostración"
-      : profile.dataProvenance.academicSource === "ocr"
-        ? "datos extraídos por OCR y revisados por ti"
-        : profile.dataProvenance.academicSource === "manual"
-          ? "datos registrados por ti"
-          : "los datos disponibles en tu perfil";
+  const orderedRequirements = [...evaluation.evaluations].sort((first, second) => {
+    const firstAcademic = isAcademicPerformanceRequirement(
+      first.requirement.description,
+      first.requirement.type
+    );
+    const secondAcademic = isAcademicPerformanceRequirement(
+      second.requirement.description,
+      second.requirement.type
+    );
+    return Number(secondAcademic) - Number(firstAcademic);
+  });
+  const costIsConfirmed = Boolean(
+    opportunity.cost &&
+      !normalizedCost(opportunity.cost).includes("no se publica") &&
+      !normalizedCost(opportunity.cost).includes("por confirmar")
+  );
 
   return (
     <AppShell>
@@ -104,7 +132,7 @@ export default function OportunidadDetailPage() {
               {opportunity.longDescription}
             </p>
           </div>
-          <div className="flex min-w-48 flex-col justify-center rounded-2xl border border-primary/20 bg-primary-soft/55 p-6">
+          <div className="detail-score-card">
             {informational ? (
               <>
                 <span className="text-lg font-bold text-status-pending">Guía informativa</span>
@@ -118,70 +146,105 @@ export default function OportunidadDetailPage() {
                   {confirmedSignals}/{totalSignals}
                 </span>
                 <span className="mt-1 text-sm leading-5 text-canvas-foreground/60">
-                  señales confirmadas con tus datos
+                  requisitos confirmados con tus datos
                 </span>
               </>
             )}
           </div>
         </div>
 
-        <div className="mt-6 flex flex-wrap items-center gap-3">
-          {!informational && <span className={`rounded-full px-3 py-1.5 text-sm font-bold ${match.style}`}>{match.label}</span>}
-          <span className="text-sm font-medium text-canvas-foreground/60">
+        <div className="detail-meta-row">
+          {!informational && (
+            <span className={`rounded-full px-3 py-1.5 text-sm font-bold ${match.style}`}>
+              {match.label}
+            </span>
+          )}
+          <span
+            className={`detail-meta-pill ${evaluation.window.status === "active" ? "detail-meta-pill--date-active" : ""}`}
+          >
             {evaluation.window.label}
           </span>
           {opportunity.cost && (
-            <span className="text-sm text-canvas-foreground/60">· {opportunity.cost}</span>
+            <span className={costIsConfirmed ? "detail-cost-pill" : "detail-meta-pill"}>
+              {opportunity.cost}
+            </span>
           )}
         </div>
 
-        {!informational && (
-          <div className="mt-5 flex items-start gap-3 rounded-2xl border border-status-info/20 bg-status-info-soft px-5 py-4">
-            <AlertIcon width={17} height={17} className="mt-0.5 shrink-0 text-status-pending" />
-            <p className="text-sm leading-6 text-canvas-foreground/70">
-              Este resultado compara {academicSourceLabel} con requisitos documentados.
-              “Validación oficial” significa que la universidad o entidad responsable debe
-              confirmar ese punto; no equivale a rechazo ni a aprobación.
-            </p>
-          </div>
-        )}
-
-        {!informational && profile.dataProvenance.documentContext === "demo" && (
-          <div className="mt-3 flex items-start gap-3 rounded-2xl border border-amber-300/55 bg-amber-50 px-5 py-4 text-amber-950">
-            <AlertIcon width={17} height={17} className="mt-0.5 shrink-0" />
-            <p className="text-sm leading-6">
-              Estás viendo una simulación. Las coincidencias sirven para demostrar el funcionamiento de MetaUTP, pero no acreditan notas, posición académica ni elegibilidad ante la UTP.
-            </p>
-          </div>
-        )}
-
         {!informational && evaluation.gateEvaluations.length > 0 && (
-          <section className="mt-8">
-            <div className="flex flex-wrap items-end justify-between gap-2">
-              <h2 className="text-xl font-bold text-canvas-foreground">Condiciones esenciales de tu perfil</h2>
-              <Link href="/configuracion" className="text-sm font-bold text-primary hover:underline">Editar datos</Link>
+          <section className="mt-8 overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
+            <div className="flex items-center gap-3 px-5 py-4">
+              <button
+                type="button"
+                className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                aria-expanded={conditionsOpen}
+                aria-controls="essential-profile-conditions"
+                onClick={() => setConditionsOpen((current) => !current)}
+              >
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-canvas-soft text-primary">
+                  <ChevronLeftIcon
+                    width={18}
+                    height={18}
+                    className={`transition-transform ${conditionsOpen ? "-rotate-90" : "rotate-180"}`}
+                  />
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-lg font-bold text-canvas-foreground">
+                    Condiciones esenciales de tu perfil
+                  </span>
+                  <span className="mt-0.5 block text-sm text-canvas-foreground/55">
+                    {conditionsOpen
+                      ? "Ocultar condiciones"
+                      : `${evaluation.gateEvaluations.length} condiciones · mostrar detalle`}
+                  </span>
+                </span>
+              </button>
+              <Link
+                href="/configuracion"
+                className="shrink-0 text-sm font-bold text-primary hover:underline"
+              >
+                Editar datos
+              </Link>
             </div>
-            <div className="mt-3 grid gap-3 md:grid-cols-2">
-              {evaluation.gateEvaluations.map(({ gate, result }) => (
-                <div key={gate.id} className="rounded-2xl border border-border bg-white p-5 shadow-sm">
-                  <div className="flex items-start justify-between gap-3">
-                    <p className="text-sm font-bold leading-6 text-canvas-foreground">{gate.label}</p>
-                    <StatusBadge
-                      status={result === "met" ? "met" : result === "unmet" ? "unmet" : "needs_info"}
-                      label={result === "met" ? "Confirmado" : result === "unmet" ? "No coincide" : "Falta dato"}
-                      size="sm"
-                    />
+            {conditionsOpen && (
+              <div
+                id="essential-profile-conditions"
+                className="grid gap-3 border-t border-border bg-canvas/45 p-4 md:grid-cols-2"
+              >
+                {evaluation.gateEvaluations.map(({ gate, result }) => (
+                  <div
+                    key={gate.id}
+                    className="rounded-2xl border border-border bg-white p-5 shadow-sm"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <p className="text-sm font-bold leading-6 text-canvas-foreground">
+                        {gate.label}
+                      </p>
+                      <StatusBadge
+                        status={
+                          result === "met" ? "met" : result === "unmet" ? "unmet" : "needs_info"
+                        }
+                        label={
+                          result === "met"
+                            ? "Confirmado"
+                            : result === "unmet"
+                              ? "No coincide"
+                              : "Falta dato"
+                        }
+                        size="sm"
+                      />
+                    </div>
+                    <p className="mt-2 text-sm leading-6 text-canvas-foreground/62">
+                      {result === "met"
+                        ? "Tu respuesta coincide con esta condición. La entidad aún puede solicitar sustento."
+                        : result === "unmet"
+                          ? "Con lo que declaraste, esta oportunidad no corresponde por ahora."
+                          : "No asumimos que cumples esta condición: complétala solo si deseas considerarla."}
+                    </p>
                   </div>
-                  <p className="mt-2 text-sm leading-6 text-canvas-foreground/62">
-                    {result === "met"
-                      ? "Tu respuesta coincide con esta condición. La entidad aún puede solicitar sustento."
-                      : result === "unmet"
-                        ? "Con lo que declaraste, esta oportunidad no corresponde por ahora."
-                        : "No asumimos que cumples esta condición: complétala solo si deseas considerarla."}
-                  </p>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </section>
         )}
 
@@ -195,29 +258,45 @@ export default function OportunidadDetailPage() {
             </span>
           </div>
           <div className="mt-3 space-y-3">
-            {evaluation.evaluations.map((item) => (
-              <div key={item.requirement.id} className="rounded-2xl border border-border bg-white p-5 shadow-sm transition hover:border-border-strong hover:shadow-md">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-base font-bold text-canvas-foreground">
-                    {item.requirement.description}
+            {orderedRequirements.map((item) => {
+              const academicRequirement = isAcademicPerformanceRequirement(
+                item.requirement.description,
+                item.requirement.type
+              );
+              return (
+                <div
+                  key={item.requirement.id}
+                  className={`rounded-2xl border bg-white p-5 shadow-sm transition hover:shadow-md ${academicRequirement ? "academic-requirement-card" : "border-border hover:border-border-strong"}`}
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      {academicRequirement && (
+                        <span className="academic-requirement-label">Rendimiento académico</span>
+                      )}
+                      <p
+                        className={`${academicRequirement ? "mt-2" : ""} text-base font-bold text-canvas-foreground`}
+                      >
+                        {item.requirement.description}
+                      </p>
+                    </div>
+                    <StatusBadge
+                      status={item.status}
+                      label={
+                        item.status === "official"
+                          ? "Confirmación oficial"
+                          : item.status === "needs_info"
+                            ? "Completa este dato"
+                            : undefined
+                      }
+                      size="sm"
+                    />
+                  </div>
+                  <p className="mt-2 text-sm leading-6 text-canvas-foreground/65">
+                    {item.detail}
                   </p>
-                  <StatusBadge
-                    status={item.status}
-                    label={
-                      item.status === "official"
-                        ? "Confirmación oficial"
-                        : item.status === "needs_info"
-                          ? "Completa este dato"
-                          : undefined
-                    }
-                    size="sm"
-                  />
                 </div>
-                <p className="mt-2 text-sm leading-6 text-canvas-foreground/65">
-                  {item.detail}
-                </p>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </section>
 

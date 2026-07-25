@@ -43,6 +43,20 @@ function labelsOverlap(first: string, second: string) {
   return overlap > 0 && overlap / Math.min(firstWords.size, secondWords.size) >= 0.34;
 }
 
+function isAcademicRequirement(description: string, type: string) {
+  const normalized = description
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+  return (
+    type === "numeric_gpa" ||
+    normalized.includes("promedio") ||
+    normalized.includes("nota") ||
+    normalized.includes("merito academico") ||
+    normalized.includes("orden de merito")
+  );
+}
+
 export function OpportunityCard({
   opportunity,
   evaluation,
@@ -61,7 +75,14 @@ export function OpportunityCard({
   const MatchIcon = match?.icon;
   const confirmed = evaluation?.confirmedCount ?? 0;
   const total = evaluation?.comparisonTotal ?? 0;
-  const evaluatedRows = evaluation?.evaluations.map((item) => ({ id: item.requirement.id, label: item.requirement.description, status: item.status })) ?? [];
+  const evaluatedRows = evaluation?.evaluations.map((item) => ({
+    id: item.requirement.id,
+    label: item.requirement.description,
+    status: item.status,
+    emphasis: isAcademicRequirement(item.requirement.description, item.requirement.type)
+      ? "academic" as const
+      : undefined,
+  })) ?? [];
   const requirementRows = evaluation
     ? [
         ...evaluatedRows,

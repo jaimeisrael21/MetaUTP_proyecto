@@ -11,6 +11,7 @@ export interface RequirementSummaryRow {
   id: string;
   label: string;
   status: RequirementStatus;
+  emphasis?: "academic";
 }
 
 const REQUIREMENT_STATE: Record<
@@ -50,7 +51,11 @@ export function RequirementSummary({
   rows: RequirementSummaryRow[];
 }) {
   const visibleRows = [...rows]
-    .sort((first, second) => STATUS_ORDER[first.status] - STATUS_ORDER[second.status])
+    .sort(
+      (first, second) =>
+        Number(second.emphasis === "academic") - Number(first.emphasis === "academic") ||
+        STATUS_ORDER[first.status] - STATUS_ORDER[second.status]
+    )
     .slice(0, 4);
 
   return (
@@ -78,7 +83,7 @@ export function RequirementSummary({
           return (
             <li
               key={item.id}
-              className={`requirement-row ${visual.style}`}
+              className={`requirement-row ${visual.style} ${item.emphasis === "academic" ? "requirement-row--academic" : ""}`}
               title={`${visual.label}: ${item.label}`}
             >
               <span className="requirement-row__icon" aria-hidden="true">

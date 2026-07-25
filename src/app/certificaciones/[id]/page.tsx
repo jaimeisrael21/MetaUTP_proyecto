@@ -7,7 +7,6 @@ import { AiOpportunityGuide } from "@/components/AiOpportunityGuide";
 import { AppShell } from "@/components/AppShell";
 import { InfoTooltip } from "@/components/InfoTooltip";
 import {
-  AlertIcon,
   AwardIcon,
   CheckCircleIcon,
   ChevronLeftIcon,
@@ -120,7 +119,7 @@ export default function CertificacionDetailPage() {
               Entidad: {path.issuer}
             </p>
           </div>
-          <div className="flex min-w-48 flex-col justify-center rounded-2xl border border-primary/20 bg-primary-soft/55 p-6">
+          <div className="detail-score-card">
             <span className="text-4xl font-extrabold text-canvas-foreground">
               {evaluation.confirmedCount}/{evaluation.comparisonTotal}
             </span>
@@ -130,26 +129,14 @@ export default function CertificacionDetailPage() {
           </div>
         </div>
 
-        <div className="mt-6 flex flex-wrap items-center gap-3">
+        <div className="detail-meta-row">
           <span className={`rounded-full px-3 py-1.5 text-sm font-bold ${match.style}`}>
             {match.label}
           </span>
-          <span className="text-sm font-medium text-canvas-foreground/60">
+          <span className="detail-meta-pill detail-meta-pill--date-active">
             {path.availabilityLabel}
           </span>
-        </div>
-
-        <div className="mt-5 flex items-start gap-3 rounded-2xl border border-status-info/20 bg-status-info-soft px-5 py-4">
-          <AlertIcon
-            width={17}
-            height={17}
-            className="mt-0.5 shrink-0 text-status-pending"
-          />
-          <p className="text-sm leading-6 text-canvas-foreground/70">
-            La oportunidad permanece visible aunque UTP no publique todavía el curso, ciclo o
-            convocatoria exactos. Esos puntos aparecen como confirmación oficial y no se usan para
-            inventar elegibilidad.
-          </p>
+          {path.costLabel && <span className="detail-cost-pill">{path.costLabel}</span>}
         </div>
 
         <section className="mt-8 rounded-3xl border border-border bg-white p-6 shadow-sm md:p-7">

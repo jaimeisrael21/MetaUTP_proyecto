@@ -66,6 +66,7 @@ export interface CertificationPath {
   clarifications?: CertificationClarification[];
   nextStep: string;
   availabilityLabel: string;
+  costLabel?: string;
   sources: CertificationSource[];
   verifiedAt: string;
   searchTerms?: string[];
@@ -558,6 +559,7 @@ export const certificationPaths: CertificationPath[] = [
     nextStep:
       "Confirma con tu facultad la ruta UTP vigente y revisa directamente la guía oficial del examen de Google Cloud.",
     availabilityLabel: "Ruta UTP por confirmar; examen externo disponible",
+    costLabel: "Examen externo: USD 125 más impuestos",
     sources: [
       {
         label: "Página oficial - Ingeniería de Software UTP",
@@ -618,6 +620,7 @@ export const certificationPaths: CertificationPath[] = [
     nextStep:
       "Revisa la convocatoria, rinde el Placement Test y espera la confirmación de vacante en tu correo UTP.",
     availabilityLabel: "Próxima convocatoria publicada: agosto de 2026",
+    costLabel: "S/35 por ciclo de 10 semanas",
     sources: [
       {
         label: "UTP Empleabilidad - English Discoveries",
