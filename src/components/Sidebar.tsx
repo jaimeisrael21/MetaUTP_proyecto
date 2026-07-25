@@ -5,7 +5,6 @@ import { usePathname, useRouter } from "next/navigation";
 import { clearProfile, useSession } from "@/lib/store";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import {
-  AwardIcon,
   CompassIcon,
   LogOutIcon,
   RouteIcon,
@@ -20,7 +19,6 @@ import {
 const NAV_ITEMS = [
   { href: "/oportunidades", label: "Oportunidades", icon: CompassIcon },
   { href: "/simulador", label: "Mi ruta", icon: RouteIcon },
-  { href: "/certificaciones", label: "Certificaciones", icon: AwardIcon },
 ];
 
 export function Sidebar() {

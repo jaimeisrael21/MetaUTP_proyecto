@@ -19,6 +19,19 @@ export interface OcrAcademicImport {
 
 type OcrPhase = "idle" | "processing" | "review" | "error";
 
+interface OcrBox {
+  x0: number;
+  y0: number;
+  x1: number;
+  y1: number;
+}
+
+interface OcrLayoutLine {
+  text: string;
+  bbox: OcrBox;
+  words: Array<{ text: string; bbox: OcrBox }>;
+}
+
 const IGNORED_LABELS = new Set([
   "aula",
   "campus",
@@ -72,29 +85,40 @@ function extractCandidateNames(text: string): string[] {
     .slice(0, 10);
 }
 
+function gradeFromOcrToken(value: string | undefined) {
+  if (!value) return null;
+  const cleaned = value
+    .replace(/[|Il]/g, "1")
+    .replace(/[Oo]/g, "0")
+    .replace(/[Ss]/g, "5")
+    .replace(/[.,]$/, "");
+  if (!/^\d{1,2}$/.test(cleaned)) return null;
+  const grade = Number(cleaned);
+  return Number.isInteger(grade) && grade >= 0 && grade <= 20 ? grade : null;
+}
+
 function candidatesFromText(text: string): Course[] {
   const plain = text.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-  const hasGradeColumn = /curso\s+creditos\s+(?:nota|calificacion)/i.test(plain);
+  const hasWeeklyHoursColumn = /curso\s+creditos\s+horas(?:\s+semanales)?\s+(?:nota|calificacion)/i.test(plain);
+  const hasGradeColumn = /curso\s+creditos(?:\s+horas(?:\s+semanales)?)?\s+(?:nota|calificacion)/i.test(plain);
   const tableRows = text
     .split(/\r?\n/)
     .map((line) => line.replace(/\b1V\b/g, "IV").trim())
     .flatMap<Course>((line) => {
       const match = line.match(
-        /^(.+?)\s+(\d{1,2}(?:[.,]\d{1,2})?)\s+(\d{1,2}(?:[.,]\d{1,2})?)(?:\s+(\d{1,2}(?:[.,]\d{1,2})?))?$/
+        /^(.+?)\s+(\d{1,2}(?:[.,]\d{1,2})?)\s+(\d{1,2}(?:[.,]\d{1,2})?)(?:\s+([^\s]{1,4}))?$/
       );
       if (!match || !/[a-záéíóúñ]{3}/i.test(match[1]) || /^(?:curso|promedio|créditos|horas|estudiante|periodo)/i.test(match[1])) return [];
       const credits = Number(match[2].replace(",", "."));
       const secondValue = Number(match[3].replace(",", "."));
-      const thirdValue = match[4] ? Number(match[4].replace(",", ".")) : null;
-      const rowIncludesGrade = thirdValue !== null || hasGradeColumn;
-      const detectedGrade = rowIncludesGrade && secondValue >= 0 && secondValue <= 20
-        ? secondValue
-        : null;
-      const detectedWeeklyHours = thirdValue !== null
-        ? thirdValue
-        : rowIncludesGrade
-          ? 0
-          : secondValue;
+      const hasThirdToken = match[4] !== undefined;
+      const rowIncludesWeeklyHours = hasWeeklyHoursColumn || hasThirdToken;
+      const detectedGrade = rowIncludesWeeklyHours
+        ? gradeFromOcrToken(match[4])
+        : hasGradeColumn
+          ? gradeFromOcrToken(match[3])
+          : null;
+      const detectedWeeklyHours = rowIncludesWeeklyHours ? secondValue : 0;
       return [{
         id: crypto.randomUUID(),
         name: match[1].trim(),
@@ -115,6 +139,97 @@ function candidatesFromText(text: string): Course[] {
     weeklyHours: 0,
     source: "ocr",
   }));
+}
+
+function layoutLinesFromBlocks(
+  blocks: Array<{
+    paragraphs: Array<{
+      lines: Array<{
+        text: string;
+        bbox: OcrBox;
+        words: Array<{ text: string; bbox: OcrBox }>;
+      }>;
+    }>;
+  }> | null
+): OcrLayoutLine[] {
+  return (blocks ?? []).flatMap((block) =>
+    block.paragraphs.flatMap((paragraph) =>
+      paragraph.lines.map((line) => ({ text: line.text, bbox: line.bbox, words: line.words }))
+    )
+  );
+}
+
+async function recoverMissingGrades(
+  file: File,
+  worker: Awaited<ReturnType<(typeof import("tesseract.js"))["createWorker"]>>,
+  blocks: Parameters<typeof layoutLinesFromBlocks>[0],
+  courses: Course[],
+  segmentationMode: import("tesseract.js").PSM
+) {
+  const missing = courses.filter((course) => course.grade === null);
+  if (missing.length === 0) return courses;
+
+  const lines = layoutLinesFromBlocks(blocks);
+  const header = lines.find((line) => {
+    const key = normalized(line.text);
+    return key.includes("curso") && key.includes("credito") && (key.includes("nota") || key.includes("calificacion"));
+  });
+  const gradeHeader = header?.words.find((word) => /^(?:nota|calificacion)$/i.test(normalized(word.text)));
+  if (!header || !gradeHeader) return courses;
+
+  await worker.setParameters({
+    tessedit_pageseg_mode: segmentationMode,
+    tessedit_char_whitelist: "0123456789",
+  });
+
+  const recovered = [...courses];
+  for (const course of missing) {
+    const courseKey = normalized(course.name);
+    const row = lines.find((line) => {
+      const lineKey = normalized(line.text);
+      return line.bbox.y0 > header.bbox.y1 && (lineKey.startsWith(courseKey) || lineKey.includes(courseKey));
+    });
+    if (!row) continue;
+    const detectedGradeWord = row.words.find(
+      (word) => word.bbox.x0 >= gradeHeader.bbox.x0 - 30
+    );
+    const gradeBox = detectedGradeWord?.bbox ?? gradeHeader.bbox;
+    const left = Math.max(0, gradeBox.x0 - 25);
+    const top = Math.max(0, row.bbox.y0 - 15);
+    const width = Math.max(70, gradeBox.x1 - left + 35);
+    const height = Math.max(44, row.bbox.y1 - row.bbox.y0 + 30);
+    const gradeResult = await worker.recognize(
+      file,
+      { rectangle: { left, top, width, height } },
+      { text: true }
+    );
+    const grade = gradeFromOcrToken(gradeResult.data.text.trim());
+    if (grade === null) continue;
+    const index = recovered.findIndex((candidate) => candidate.id === course.id);
+    if (index >= 0) recovered[index] = { ...recovered[index], grade };
+  }
+  return recovered;
+}
+
+function textWithRecoveredGrades(text: string, parsed: Course[], recovered: Course[]) {
+  const repaired = new Map(
+    parsed.flatMap((course) => {
+      const next = recovered.find((candidate) => candidate.id === course.id);
+      return course.grade === null && next?.grade !== null && next?.grade !== undefined
+        ? [[normalized(course.name), next.grade] as const]
+        : [];
+    })
+  );
+  if (repaired.size === 0) return text;
+  return text
+    .split(/\r?\n/)
+    .map((line) => {
+      const key = normalized(line);
+      const course = [...repaired.entries()].find(([name]) => key.startsWith(name));
+      if (!course) return line;
+      return line.replace(/\s+[^\s]+\s*$/, ` ${course[1]}`);
+    })
+    .join("\n");
 }
 
 function detectedNumber(text: string, patterns: RegExp[]) {
@@ -203,19 +318,27 @@ export function OcrCourseImporter({ onImport }: OcrCourseImporterProps) {
 
     let worker: Awaited<ReturnType<(typeof import("tesseract.js"))["createWorker"]>> | null = null;
     try {
-      const { createWorker } = await import("tesseract.js");
+      const { createWorker, PSM } = await import("tesseract.js");
       worker = await createWorker("spa", 1, {
         logger: (message) => {
           if (typeof message.progress === "number") setProgress(message.progress);
           if (message.status) setStatusText(message.status);
         },
       });
-      const result = await worker.recognize(file);
+      const result = await worker.recognize(file, {}, { text: true, blocks: true });
       const detectedText = result.data.text.trim();
-      const detectedCourses = candidatesFromText(detectedText);
+      const parsedCourses = candidatesFromText(detectedText);
+      setStatusText("Verificando la columna de notas…");
+      const detectedCourses = await recoverMissingGrades(
+        file,
+        worker,
+        result.data.blocks,
+        parsedCourses,
+        PSM.SINGLE_LINE
+      );
       const detectedAcademic = extractAcademicImport(detectedText);
 
-      setRawText(detectedText);
+      setRawText(textWithRecoveredGrades(detectedText, parsedCourses, detectedCourses));
       setCandidates(detectedCourses);
       setAcademicImport(detectedAcademic);
       setProgress(1);

@@ -64,7 +64,7 @@ export default function CertificacionesPage() {
           {orderedPaths.map((path) => {
             const careerMatch = pathMatchesCareer(path, profile.career);
             return (
-              <article key={path.id} className={`rounded-3xl border bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg ${careerMatch ? "border-primary/25" : "border-border"}`}>
+              <article id={path.id} key={path.id} className={`scroll-mt-6 rounded-3xl border bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg ${careerMatch ? "border-primary/25" : "border-border"}`}>
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <span className={`rounded-full px-3 py-1 text-xs font-bold ${KIND_STYLE[path.kind]}`}>{KIND_LABEL[path.kind]}</span>
                   {path.careers && careerMatch && <span className="rounded-full bg-primary-soft px-3 py-1 text-xs font-bold text-primary">Relacionada con tu carrera</span>}

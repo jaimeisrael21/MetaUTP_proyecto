@@ -13,19 +13,40 @@ import {
   PencilIcon,
 } from "@/components/icons";
 import { OpportunityCard } from "@/components/OpportunityCard";
+import { CertificationOpportunityCard } from "@/components/CertificationOpportunityCard";
 import { CatalogPeriodNotice } from "@/components/CatalogPeriodNotice";
 import { CURRENT_ACADEMIC_PERIOD } from "@/data/academic-period";
+import { certificationPaths, pathMatchesCareer, type CertificationPath } from "@/data/certifications";
 import { opportunities } from "@/data/opportunities";
 import type { OpportunityCategory } from "@/data/types";
 import { evaluateOpportunity, isPersonalizedOpportunityVisible, rankOpportunity } from "@/lib/matching";
 import { useProfile, useSession } from "@/lib/store";
 
-const CATEGORIES: (OpportunityCategory | "Todas")[] = [
+type CatalogCategory = OpportunityCategory | "Todas" | "Certificaciones";
+
+type CatalogItem =
+  | {
+      kind: "opportunity";
+      opportunity: (typeof opportunities)[number];
+      evaluation: ReturnType<typeof evaluateOpportunity>;
+      ranking: ReturnType<typeof rankOpportunity>;
+      catalogIndex: number;
+      score: number;
+    }
+  | {
+      kind: "certification";
+      path: CertificationPath;
+      catalogIndex: number;
+      score: number;
+    };
+
+const CATEGORIES: CatalogCategory[] = [
   "Todas",
   "Becas",
   "Intercambios",
   "Empleabilidad",
   "Convenios",
+  "Certificaciones",
 ];
 const PAGE_SIZE = 4;
 
@@ -71,16 +92,36 @@ export default function OportunidadesPage() {
     [evaluatedAll]
   );
 
-  const orderedOpportunities = useMemo(() => {
-    return personalized
-      .filter(({ opportunity }) => category === "Todas" || opportunity.category === category)
-      .sort((first, second) => {
-        return second.ranking.score - first.ranking.score || first.catalogIndex - second.catalogIndex;
-      });
-  }, [category, personalized]);
+  const personalizedCertifications = useMemo(
+    () => certificationPaths.filter((path) => pathMatchesCareer(path, profile.career)),
+    [profile.career]
+  );
 
-  const totalPages = Math.max(1, Math.ceil(orderedOpportunities.length / PAGE_SIZE));
-  const pageItems = orderedOpportunities.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const orderedCatalog = useMemo(() => {
+    const opportunityItems: CatalogItem[] = category === "Certificaciones"
+      ? []
+      : personalized
+          .filter(({ opportunity }) => category === "Todas" || opportunity.category === category)
+          .map((item) => ({
+            kind: "opportunity" as const,
+            ...item,
+            score: item.ranking.score,
+          }));
+    const certificationItems: CatalogItem[] = category === "Todas" || category === "Certificaciones"
+      ? personalizedCertifications.map((path, index) => ({
+          kind: "certification" as const,
+          path,
+          catalogIndex: opportunities.length + index,
+          score: path.careers ? 64 : 44,
+        }))
+      : [];
+    return [...opportunityItems, ...certificationItems].sort(
+      (first, second) => second.score - first.score || first.catalogIndex - second.catalogIndex
+    );
+  }, [category, personalized, personalizedCertifications]);
+
+  const totalPages = Math.max(1, Math.ceil(orderedCatalog.length / PAGE_SIZE));
+  const pageItems = orderedCatalog.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const summary = useMemo(
     () => ({
@@ -92,7 +133,7 @@ export default function OportunidadesPage() {
     [personalized]
   );
 
-  function chooseCategory(next: (typeof CATEGORIES)[number]) {
+  function chooseCategory(next: CatalogCategory) {
     setCategory(next);
     setPage(1);
   }
@@ -188,14 +229,16 @@ export default function OportunidadesPage() {
           </div>
 
           <div className="opportunity-grid mt-4" aria-live="polite">
-            {pageItems.map(({ opportunity, evaluation, ranking }, index) => (
+            {pageItems.map((item, index) => item.kind === "opportunity" ? (
               <OpportunityCard
-                key={opportunity.id}
-                opportunity={opportunity}
-                evaluation={evaluation}
-                rankingReason={ranking.reason}
+                key={item.opportunity.id}
+                opportunity={item.opportunity}
+                evaluation={item.evaluation}
+                rankingReason={item.ranking.reason}
                 animationIndex={index}
               />
+            ) : (
+              <CertificationOpportunityCard key={item.path.id} path={item.path} animationIndex={index} />
             ))}
           </div>
 
