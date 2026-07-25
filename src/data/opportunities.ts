@@ -599,15 +599,24 @@ export const opportunities: Opportunity[] = [
     windowEnd: null,
     cost: "No se publica un costo general",
     source: {
-      label: "UTP — Nuestro propósito",
-      url: "https://www.utp.edu.pe/web/nosotros",
+      label: "UTP — Reporte de Sostenibilidad 2024",
+      url: "https://www.utp.edu.pe/sostenibilidad-ambiental/sites/sostenibilidad-ambiental/files/documentos/Reporte-de-sostenibilidad-UTP-2024-Version-18.08.pdf",
       sourceNote:
-        "Fuente institucional sobre ventajas para estudiantes derivadas de la relación con Intercorp; la disponibilidad concreta depende de cada actividad UTP.",
+        "La página 9 documenta docentes y mentores del grupo, seminarios, Intercorp@UTP y desafíos empresariales. La disponibilidad concreta depende de cada actividad UTP.",
     },
     lastUpdated: "2026-07-25",
     actionability: "informational",
     actionNote:
       "Revisa tu correo institucional y los canales de Empleabilidad UTP para identificar una actividad vigente. No se encontró una fuente oficial que confirme descuentos generales en Bembos, gimnasios u otros comercios para todos los estudiantes UTP.",
+    searchTerms: [
+      "beneficios Intercorp",
+      "Intercorp UTP",
+      "mentoría",
+      "seminarios Intercorp",
+      "Intercorp@UTP",
+      "retos empresariales",
+      "empleabilidad Intercorp",
+    ],
   },
   {
     id: "empleabilidad-feria-laboral",
@@ -671,6 +680,13 @@ export const opportunities: Opportunity[] = [
     lastUpdated: "2026-07-18",
     actionNote:
       "Más información e inscripción en https://empleabilidadutp.my.canva.site/englishdiscoveries",
+    searchTerms: [
+      "inglés",
+      "certificaciones de inglés",
+      "TOEIC",
+      "preparación TOEIC",
+      "English Discoveries",
+    ],
   },
   {
     id: "empleabilidad-generacion-top",

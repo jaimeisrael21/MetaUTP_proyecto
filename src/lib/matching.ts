@@ -67,6 +67,43 @@ function normalizedDescription(value: string) {
     .toLowerCase();
 }
 
+function metricValueLabel(requirement: Requirement) {
+  const metric = inferredMetric(requirement);
+  if (
+    metric === "current_cycle_gpa" ||
+    metric === "last_period_gpa" ||
+    metric === "last_two_periods_gpa" ||
+    metric === "cumulative_gpa"
+  ) {
+    return "Tu promedio registrado";
+  }
+  if (metric === "approved_credits" || metric === "current_period_credits") {
+    return "Tus créditos registrados";
+  }
+  if (metric === "weekly_hours_current" || metric === "weekly_hours_previous") {
+    return "Tus horas semanales registradas";
+  }
+  if (metric === "cycle") return "Tu ciclo registrado";
+  return "Tu valor registrado";
+}
+
+function readableThreshold(comparator: string, threshold: number) {
+  switch (comparator) {
+    case ">":
+      return `debe ser mayor que ${threshold}`;
+    case ">=":
+      return `tiene como mínimo ${threshold}`;
+    case "<":
+      return `debe ser menor que ${threshold}`;
+    case "<=":
+      return `tiene como máximo ${threshold}`;
+    case "==":
+      return `debe ser exactamente ${threshold}`;
+    default:
+      return `tiene como mínimo ${threshold}`;
+  }
+}
+
 function inferredMetric(requirement: Requirement) {
   if (requirement.metric) return requirement.metric;
   const description = normalizedDescription(requirement.description);
@@ -133,7 +170,7 @@ export function evaluateRequirement(
       return {
         requirement,
         status: "met",
-        detail: `Cumples: tienes ${value}; el requisito indica ${comparator} ${requirement.threshold}.`,
+        detail: `Cumples. ${metricValueLabel(requirement)} es ${value} y el requisito ${readableThreshold(comparator, requirement.threshold)}.`,
       };
     }
 
@@ -151,7 +188,7 @@ export function evaluateRequirement(
     return {
       requirement,
       status: "unmet",
-      detail: `Aún no cumples: tienes ${value}; el requisito indica ${comparator} ${requirement.threshold}.`,
+      detail: `Aún no cumples. ${metricValueLabel(requirement)} es ${value} y el requisito ${readableThreshold(comparator, requirement.threshold)}.`,
     };
   }
 

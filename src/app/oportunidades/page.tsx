@@ -34,7 +34,12 @@ import {
 } from "@/lib/matching";
 import { useProfile, useSession } from "@/lib/store";
 
-type CatalogCategory = OpportunityCategory | "Todas" | "Certificaciones";
+type CatalogCategory =
+  | OpportunityCategory
+  | "Todas"
+  | "Certificaciones"
+  | "Inglés"
+  | "Beneficios";
 
 type CatalogItem =
   | {
@@ -60,6 +65,8 @@ const CATEGORIES: CatalogCategory[] = [
   "Empleabilidad",
   "Convenios",
   "Certificaciones",
+  "Inglés",
+  "Beneficios",
 ];
 const PAGE_SIZE = 4;
 
@@ -74,6 +81,65 @@ function normalizedSearch(value: string) {
 function includesSearch(values: Array<string | undefined>, query: string) {
   if (!query) return true;
   return normalizedSearch(values.filter(Boolean).join(" ")).includes(query);
+}
+
+function opportunitySearchValues(opportunity: (typeof opportunities)[number]) {
+  return [
+    opportunity.title,
+    opportunity.shortDescription,
+    opportunity.longDescription,
+    opportunity.category,
+    opportunity.cost,
+    opportunity.actionNote,
+    opportunity.source.label,
+    opportunity.source.sourceNote,
+    ...opportunity.requirements.map((requirement) => requirement.description),
+    ...(opportunity.searchTerms ?? []),
+  ];
+}
+
+function certificationSearchValues(path: CertificationPath) {
+  return [
+    path.title,
+    path.summary,
+    path.issuer,
+    path.whatItIs,
+    path.whyItMatters,
+    path.nextStep,
+    ...path.practicalUses,
+    ...path.characteristics,
+    ...path.requirements.map((requirement) => requirement.description),
+    ...path.sources.flatMap((source) => [source.label, source.note]),
+    ...(path.searchTerms ?? []),
+  ];
+}
+
+function isEnglishSearch(values: Array<string | undefined>) {
+  const content = normalizedSearch(values.filter(Boolean).join(" "));
+  return ["ingles", "english", "toeic", "toefl", "ielts", "cambridge"].some((term) =>
+    content.includes(term)
+  );
+}
+
+function opportunityMatchesCategory(
+  opportunity: (typeof opportunities)[number],
+  selectedCategory: CatalogCategory
+) {
+  if (selectedCategory === "Todas") return true;
+  if (selectedCategory === "Certificaciones") return false;
+  if (selectedCategory === "Inglés") {
+    return isEnglishSearch(opportunitySearchValues(opportunity));
+  }
+  if (selectedCategory === "Beneficios") {
+    return opportunity.id.includes("intercorp");
+  }
+  return opportunity.category === selectedCategory;
+}
+
+function certificationMatchesCategory(path: CertificationPath, selectedCategory: CatalogCategory) {
+  if (selectedCategory === "Todas" || selectedCategory === "Certificaciones") return true;
+  if (selectedCategory === "Inglés") return isEnglishSearch(certificationSearchValues(path));
+  return false;
 }
 
 export default function OportunidadesPage() {
@@ -125,12 +191,9 @@ export default function OportunidadesPage() {
     return evaluatedAll
       .filter(
         ({ opportunity, evaluation }) =>
-          opportunity.category === category &&
+          opportunityMatchesCategory(opportunity, category) &&
           isRelevantClosedOpportunity(evaluation) &&
-          includesSearch(
-            [opportunity.title, opportunity.shortDescription, opportunity.category],
-            normalizedQuery
-          )
+          includesSearch(opportunitySearchValues(opportunity), normalizedQuery)
       )
       .sort((first, second) =>
         (second.opportunity.windowEnd ?? "").localeCompare(first.opportunity.windowEnd ?? "")
@@ -152,28 +215,21 @@ export default function OportunidadesPage() {
       : personalized
           .filter(
             ({ opportunity }) =>
-              (category === "Todas" || opportunity.category === category) &&
-              includesSearch(
-                [
-                  opportunity.title,
-                  opportunity.shortDescription,
-                  opportunity.category,
-                ],
-                normalizedQuery
-              )
+              opportunityMatchesCategory(opportunity, category) &&
+              includesSearch(opportunitySearchValues(opportunity), normalizedQuery)
           )
           .map((item) => ({
             kind: "opportunity" as const,
             ...item,
             score: item.ranking.score,
           }));
-    const certificationItems: CatalogItem[] = category === "Todas" || category === "Certificaciones"
+    const certificationItems: CatalogItem[] =
+      category === "Todas" || category === "Certificaciones" || category === "Inglés"
       ? personalizedCertifications
-          .filter(({ path }) =>
-            includesSearch(
-              [path.title, path.summary, path.issuer, path.whatItIs],
-              normalizedQuery
-            )
+          .filter(
+            ({ path }) =>
+              certificationMatchesCategory(path, category) &&
+              includesSearch(certificationSearchValues(path), normalizedQuery)
           )
           .map(({ path, evaluation }, index) => ({
             kind: "certification" as const,
@@ -216,6 +272,7 @@ export default function OportunidadesPage() {
 
   function updateSearch(value: string) {
     setSearchQuery(value);
+    if (value.trim()) setCategory("Todas");
     setPage(1);
   }
 

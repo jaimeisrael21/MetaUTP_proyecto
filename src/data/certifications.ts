@@ -68,6 +68,7 @@ export interface CertificationPath {
   availabilityLabel: string;
   sources: CertificationSource[];
   verifiedAt: string;
+  searchTerms?: string[];
 }
 
 const SOFTWARE_CAREERS = ["ingenieria de software"];
@@ -630,16 +631,23 @@ export const certificationPaths: CertificationPath[] = [
       },
     ],
     verifiedAt: "2026-07-25",
+    searchTerms: [
+      "inglés",
+      "certificación de inglés",
+      "TOEIC",
+      "preparación TOEIC",
+      "examen internacional",
+    ],
   },
   {
     id: "english-external-convalidation",
-    title: "Convalidación de Inglés con certificado externo",
+    title: "TOEFL, Cambridge, IELTS y otros exámenes reconocidos por UTP",
     kind: "convalidation",
     issuer: "Entidad externa; convalidación evaluada por UTP",
     summary:
-      "Un certificado o examen internacional puede permitirte convalidar cursos de Inglés, sujeto a tu cohorte, modalidad y validación documental.",
+      "Conoce qué exámenes y puntajes acepta la UTP para solicitar la convalidación de cursos de Inglés.",
     whatItIs:
-      "Es un procedimiento académico de UTP para reconocer determinados certificados o exámenes externos de inglés. No es una nueva certificación profesional emitida por UTP.",
+      "Es una ruta de convalidación académica para resultados externos como TOEFL, TOEIC, IELTS y los exámenes Cambridge. La UTP reconoce determinados exámenes y puntajes; no emite esas certificaciones ni garantiza la aprobación automática.",
     whyItMatters:
       "Si tu documento, puntaje y modalidad cumplen el lineamiento, la aprobación puede evitar que curses algunos niveles de Inglés del plan de estudios.",
     practicalUses: [
@@ -672,9 +680,42 @@ export const certificationPaths: CertificationPath[] = [
       ),
     ],
     characteristics: [
+      "TOEFL: iBT 41+, ITP 343+ o PBT 476+",
+      "Cambridge: KET A2 Grade B, PET B1, FCE B2, CAE C1 o CPE C2",
+      "IELTS: banda 3.5; TOEIC: 385+",
+      "También se reconocen EnglishScore, ECCE, ECPE, IB English, MET, Oxford y Pearson con el nivel publicado",
       "Ingresantes hasta agosto de 2024: posible convalidación de Inglés I-IV",
       "Ingresantes desde marzo de 2025: posible convalidación de Inglés I-III según submodalidad",
-      "La V02 amplía la relación de centros culturales peruano-norteamericanos aceptados",
+    ],
+    clarifications: [
+      {
+        label: "TOEFL: iBT 41+, ITP 343+ o PBT 476+",
+        plainMeaning: "TOEFL es una familia de exámenes de ETS. La guía UTP vigente publica un puntaje mínimo distinto para cada modalidad.",
+        usefulness: "El resultado puede servir para solicitar la convalidación de cursos de Inglés si también cumples las demás condiciones del lineamiento.",
+        basis: "official",
+        sourceIndex: 1,
+      },
+      {
+        label: "Cambridge: KET A2 Grade B, PET B1, FCE B2, CAE C1 o CPE C2",
+        plainMeaning: "Son certificaciones de Cambridge English para distintos niveles, desde A2 hasta C2. La UTP publica qué nivel mínimo reconoce en cada caso.",
+        usefulness: "Un certificado aceptado puede respaldar una solicitud de convalidación; la revisión documental final corresponde a la UTP.",
+        basis: "official",
+        sourceIndex: 1,
+      },
+      {
+        label: "IELTS: banda 3.5; TOEIC: 385+",
+        plainMeaning: "La guía UTP incluye IELTS y TOEIC entre los exámenes internacionales aceptados y señala esos puntajes mínimos.",
+        usefulness: "Permite comprobar rápidamente si tu resultado alcanza el umbral publicado antes de iniciar el trámite.",
+        basis: "official",
+        sourceIndex: 1,
+      },
+      {
+        label: "También se reconocen EnglishScore, ECCE, ECPE, IB English, MET, Oxford y Pearson con el nivel publicado",
+        plainMeaning: "La lista oficial no se limita a TOEFL o Cambridge: incluye otras evaluaciones y certificaciones con niveles o resultados mínimos específicos.",
+        usefulness: "Puedes verificar alternativas que quizá ya rendiste sin asumir que cualquier certificado genérico será aceptado.",
+        basis: "official",
+        sourceIndex: 1,
+      },
     ],
     nextStep:
       "Compara tu fecha de ingreso, submodalidad, entidad, examen y puntaje con el lineamiento V02 antes de solicitar la convalidación.",
@@ -685,8 +726,35 @@ export const certificationPaths: CertificationPath[] = [
         url: "https://www.utp.edu.pe/web/sites/default/files/2025-06/DAG-LN001-Lineamientos-para-la-convalidaci%C3%B3n-del-curso-de-Ingles-en-el-plan-de-estudios-v02-PT.pdf",
         note: "Versión vigente aprobada por Resolución Rectoral 107-2025.",
       },
+      {
+        label: "Guía del Egresado Pregrado UTP V14 - Anexo 2",
+        url: "https://www.utp.edu.pe/web/sites/default/files/2026-05/Guia_del_egresado_Pregrado_V14_PT.pdf",
+        note: "Publica los exámenes internacionales y puntajes mínimos aceptados para convalidar cursos de Inglés.",
+      },
     ],
     verifiedAt: "2026-07-25",
+    searchTerms: [
+      "inglés",
+      "certificaciones de inglés",
+      "exámenes internacionales",
+      "TOEFL",
+      "TOEFL iBT",
+      "TOEFL ITP",
+      "TOEFL PBT",
+      "TOEIC",
+      "IELTS",
+      "Cambridge",
+      "KET",
+      "PET",
+      "FCE",
+      "CAE",
+      "CPE",
+      "EnglishScore",
+      "Michigan",
+      "Oxford",
+      "Pearson",
+      "convalidación de inglés",
+    ],
   },
   {
     id: "utp-english-proficiency",
@@ -739,6 +807,13 @@ export const certificationPaths: CertificationPath[] = [
       },
     ],
     verifiedAt: "2026-07-25",
+    searchTerms: [
+      "inglés",
+      "examen de inglés UTP",
+      "suficiencia de inglés",
+      "acreditar inglés",
+      "convalidación de inglés",
+    ],
   },
 ];
 

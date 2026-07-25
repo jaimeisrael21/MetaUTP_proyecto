@@ -60,6 +60,7 @@ export interface Opportunity {
   actionability?: "application" | "informational"; // informational = referencia útil, sin postulación individual
   alwaysVisible?: boolean; // oportunidades permanentes que conviene conocer aun si hoy falta una condición
   featured?: boolean; // true para las 2-3 que se muestran como teaser en Bienvenida
+  searchTerms?: string[]; // alias verificables para el buscador global (ej. TOEFL, Intercorp)
 }
 
 // ---- Perfil del estudiante (datos que el propio alumno ingresa manualmente) ----
