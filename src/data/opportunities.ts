@@ -570,8 +570,45 @@ export const opportunities: Opportunity[] = [
   },
 
   // ========================================================================
-  // EMPLEABILIDAD — 8 documentos
+  // EMPLEABILIDAD — 9 oportunidades documentadas
   // ========================================================================
+  {
+    id: "empleabilidad-intercorp-utp",
+    title: "Experiencias Intercorp para estudiantes UTP",
+    category: "Empleabilidad",
+    shortDescription:
+      "Mentorías, encuentros exclusivos y retos empresariales que UTP documenta por formar parte de Intercorp.",
+    longDescription:
+      "UTP publica tres ventajas académicas y de empleabilidad vinculadas a Intercorp: líderes del grupo participan como docentes o mentores, se realizan seminarios y conversaciones exclusivas Intercorp@UTP, y algunos cursos o programas especiales incorporan retos reales de empresas del grupo. No es una convocatoria única ni un descuento general en restaurantes o gimnasios; cada actividad debe ser anunciada por UTP.",
+    requirements: [
+      {
+        id: "empleabilidad-intercorp-utp-req-1",
+        description: "Ser estudiante o egresado(a) de la UTP.",
+        type: "boolean",
+      },
+      {
+        id: "empleabilidad-intercorp-utp-req-2",
+        description:
+          "Que UTP habilite una mentoría, encuentro Intercorp@UTP o reto empresarial para tu carrera, curso o periodo.",
+        type: "non_verifiable",
+        nonVerifiableNote:
+          "La fuente institucional describe estas experiencias, pero no publica un calendario único ni garantiza que todas estén disponibles para cada estudiante.",
+      },
+    ],
+    windowStart: null,
+    windowEnd: null,
+    cost: "No se publica un costo general",
+    source: {
+      label: "UTP — Nuestro propósito",
+      url: "https://www.utp.edu.pe/web/nosotros",
+      sourceNote:
+        "Fuente institucional sobre ventajas para estudiantes derivadas de la relación con Intercorp; la disponibilidad concreta depende de cada actividad UTP.",
+    },
+    lastUpdated: "2026-07-25",
+    actionability: "informational",
+    actionNote:
+      "Revisa tu correo institucional y los canales de Empleabilidad UTP para identificar una actividad vigente. No se encontró una fuente oficial que confirme descuentos generales en Bembos, gimnasios u otros comercios para todos los estudiantes UTP.",
+  },
   {
     id: "empleabilidad-feria-laboral",
     title: "Feria Laboral",
@@ -1376,7 +1413,7 @@ export const opportunities: Opportunity[] = [
     },
     lastUpdated: "2026-07-25",
     actionNote:
-      "La ventana 2026-I ya cerró. Revisa el próximo cronograma en UTP+ Portal → Trámites → Becas y Convenios y recuerda que este convenio debe solicitarse nuevamente cada periodo.",
+      "La ventana 2026-I ya cerró. Este 20% educativo corresponde a colaboradores de empresas Intercorp y a sus cónyuges o hijos; mencionar empresas como Bembos no significa que exista un descuento de consumo para todos los estudiantes. Revisa el próximo cronograma en UTP+ Portal → Trámites → Becas y Convenios y recuerda que debe solicitarse nuevamente cada periodo.",
   },
   {
     id: "convenio-zegel-ipae",

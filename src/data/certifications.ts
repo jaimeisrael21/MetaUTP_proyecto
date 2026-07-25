@@ -48,6 +48,7 @@ export interface CertificationClarification {
   plainMeaning: string;
   usefulness: string;
   basis: CertificationClarificationBasis;
+  sourceIndex?: number;
 }
 
 export interface CertificationPath {
@@ -56,6 +57,9 @@ export interface CertificationPath {
   kind: CertificationKind;
   issuer: string;
   summary: string;
+  whatItIs: string;
+  whyItMatters: string;
+  practicalUses: string[];
   careers?: string[];
   requirements: CertificationRequirement[];
   characteristics: string[];
@@ -163,6 +167,62 @@ const CISCO_CLARIFICATIONS: CertificationClarification[] = [
   },
 ];
 
+const IBM_CLARIFICATIONS: CertificationClarification[] = [
+  {
+    label: "Quién ofrece esta ruta: IBM",
+    plainMeaning:
+      "UTP publica que los estudiantes de Ingeniería de Software pueden acceder a certificaciones de IBM. Esa mención confirma al proveedor, pero no identifica por sí sola el nombre de la credencial que corresponde a tu plan.",
+    usefulness:
+      "Te ayuda a distinguir la empresa que respalda la ruta de la credencial concreta que todavía debes consultar.",
+    basis: "official",
+  },
+  {
+    label: "Qué es una credencial digital de IBM",
+    plainMeaning:
+      "IBM SkillsBuild describe sus credenciales digitales como registros verificables en línea de habilidades y conocimientos. Según la credencial, pueden exigir actividades de aprendizaje, cuestionarios, exámenes, proyectos o revisiones.",
+    usefulness:
+      "Una vez obtenida, puede compartirse en el CV, LinkedIn u otros perfiles para mostrar el aprendizaje verificado.",
+    basis: "official",
+    sourceIndex: 1,
+  },
+  {
+    label: "Qué debe confirmar UTP antes de inscribirte",
+    plainMeaning:
+      "La página de la carrera no publica qué credencial IBM está activa, ni su curso habilitante, duración o convocatoria. Esos datos deben venir de la facultad o de un enlace institucional vigente.",
+    usefulness:
+      "Evita que completes una ruta pública de IBM diferente de la que UTP reconoce para tu carrera.",
+    basis: "pending",
+  },
+];
+
+const HUAWEI_CLARIFICATIONS: CertificationClarification[] = [
+  {
+    label: "Quién ofrece la formación: Huawei ICT Academy",
+    plainMeaning:
+      "Huawei ICT Academy es un programa de cooperación con instituciones educativas para impartir formación en tecnologías Huawei y fomentar certificaciones. UTP fue nombrada miembro de esta academia en 2020.",
+    usefulness:
+      "Te permite entender que no es una asignatura genérica: la formación está vinculada al ecosistema tecnológico de Huawei.",
+    basis: "official",
+  },
+  {
+    label: "Cómo se organizan los niveles: HCIA, HCIP y HCIE",
+    plainMeaning:
+      "Huawei organiza oficialmente sus certificaciones profesionales en tres niveles: HCIA (Associate o asociado), HCIP (Professional o profesional) y HCIE (Expert o experto). Cada especialidad y nivel tiene evaluaciones propias.",
+    usefulness:
+      "Sirve para ubicar si la ruta disponible es inicial, profesional o experta; el nivel exacto no debe suponerse sin la convocatoria UTP.",
+    basis: "official",
+    sourceIndex: 1,
+  },
+  {
+    label: "Qué especialidad y convocatoria están disponibles",
+    plainMeaning:
+      "UTP anunció formación en áreas como inteligencia artificial, Big Data, IoT, nube, comunicaciones y almacenamiento, pero ese anuncio no confirma cuáles siguen abiertas hoy ni para qué sede o carrera.",
+    usefulness:
+      "Te indica qué preguntar a la facultad antes de prepararte o pagar por un examen específico.",
+    basis: "pending",
+  },
+];
+
 const careerRequirement = (id: string, description: string): CertificationRequirement => ({
   id,
   description,
@@ -183,6 +243,15 @@ export const certificationPaths: CertificationPath[] = [
     issuer: "UTP",
     summary:
       "Credenciales asociadas a la carrera que pueden obtenerse durante el avance académico, sin esperar al bachillerato.",
+    whatItIs:
+      "Es un conjunto de credenciales académicas que UTP vincula al avance dentro de Ingeniería de Software. La facultad debe confirmar cuál corresponde a tu plan y cómo se emite.",
+    whyItMatters:
+      "Puede documentar competencias específicas antes de terminar la carrera. Solo debe presentarse como certificación obtenida cuando UTP haya confirmado y emitido la credencial.",
+    practicalUses: [
+      "Agregar la credencial emitida a tu CV o portafolio",
+      "Reconocer qué competencias ya desarrollaste durante la carrera",
+      "Consultar la emisión mientras tus cursos aprobados están actualizados",
+    ],
     careers: SOFTWARE_CAREERS,
     requirements: [
       careerRequirement("software-career", "Pertenecer a Ingeniería de Software"),
@@ -230,6 +299,15 @@ export const certificationPaths: CertificationPath[] = [
     issuer: "UTP",
     summary:
       "Credenciales vinculadas al desarrollo de competencias dentro de Ingeniería de Sistemas e Informática.",
+    whatItIs:
+      "Es un conjunto de credenciales académicas que UTP asocia con competencias desarrolladas en Ingeniería de Sistemas e Informática.",
+    whyItMatters:
+      "Puede convertir parte de tu avance académico en una evidencia adicional para el CV o portafolio, siempre que la facultad confirme y emita la credencial.",
+    practicalUses: [
+      "Mostrar una competencia concreta además de tu avance general en la carrera",
+      "Identificar fortalezas para prácticas, proyectos o tutorías",
+      "Solicitar a la facultad la ruta de emisión aplicable a tu plan",
+    ],
     careers: SYSTEMS_CAREERS,
     requirements: [
       careerRequirement(
@@ -279,6 +357,15 @@ export const certificationPaths: CertificationPath[] = [
     issuer: "Cisco - acceso anunciado por UTP",
     summary:
       "Una ruta tecnológica que puede pasar desapercibida: UTP anuncia acceso a certificaciones Cisco para estudiantes de Software y Sistemas.",
+    whatItIs:
+      "Es una posible ruta hacia credenciales tecnológicas de Cisco anunciada por UTP para estas carreras. Cisco ofrece varias certificaciones, por lo que el nombre exacto debe confirmarse.",
+    whyItMatters:
+      "Una credencial concreta puede validar conocimientos del área tecnológica que evalúa. Mencionar a Cisco por sí solo no permite afirmar que la ruta sea CCNA ni que esté abierta ahora.",
+    practicalUses: [
+      "Orientar tu preparación cuando UTP confirme la credencial exacta",
+      "Añadir al CV una certificación que realmente hayas obtenido",
+      "Comparar el alcance de la ruta con puestos o prácticas relacionados",
+    ],
     careers: SOFTWARE_AND_SYSTEMS,
     requirements: [
       careerRequirement(
@@ -326,6 +413,15 @@ export const certificationPaths: CertificationPath[] = [
     issuer: "IBM - acceso anunciado por UTP",
     summary:
       "UTP incluye a IBM entre sus aliados tecnológicos, por lo que conviene confirmar las credenciales disponibles antes de dejar pasar la ruta.",
+    whatItIs:
+      "Es una posible ruta hacia credenciales tecnológicas de IBM anunciada por UTP. IBM ofrece credenciales digitales verificables, pero la página de la carrera no identifica cuál está disponible para cada estudiante.",
+    whyItMatters:
+      "La credencial obtenida puede demostrar habilidades verificadas y compartirse en el CV o LinkedIn. Su valor concreto depende del tema, nivel y evaluación de la insignia que UTP confirme.",
+    practicalUses: [
+      "Compartir una credencial obtenida en el CV o LinkedIn",
+      "Demostrar aprendizaje en el tema específico de la insignia",
+      "Elegir una ruta de estudio solo después de confirmar la oferta UTP",
+    ],
     careers: SOFTWARE_AND_SYSTEMS,
     requirements: [
       careerRequirement(
@@ -344,10 +440,11 @@ export const certificationPaths: CertificationPath[] = [
       ),
     ],
     characteristics: [
-      "Proveedor tecnológico: IBM",
-      "Las credenciales pueden incluir aprendizaje, evaluaciones o proyectos",
-      "La credencial exacta depende de la oferta vigente",
+      "Quién ofrece esta ruta: IBM",
+      "Qué es una credencial digital de IBM",
+      "Qué debe confirmar UTP antes de inscribirte",
     ],
+    clarifications: IBM_CLARIFICATIONS,
     nextStep:
       "Consulta a tu facultad cuál es la credencial IBM activa y solicita el enlace o convocatoria institucional.",
     availabilityLabel: "Oferta y credencial por confirmar",
@@ -358,9 +455,9 @@ export const certificationPaths: CertificationPath[] = [
         note: "UTP anuncia acceso a certificaciones IBM, sin precisar una credencial.",
       },
       {
-        label: "IBM SkillsBuild - credenciales digitales",
-        url: "https://skillsbuild.org/students/digital-credentials",
-        note: "Describe el proceso general para completar y reclamar credenciales IBM SkillsBuild.",
+        label: "IBM SkillsBuild - preguntas sobre credenciales digitales",
+        url: "https://skillsbuild.org/frequently-asked-questions?pageAction=openChat",
+        note: "Explica qué contienen las credenciales digitales, cómo se obtienen y cómo pueden compartirse; no identifica la credencial ofrecida por UTP.",
       },
     ],
     verifiedAt: "2026-07-25",
@@ -372,6 +469,15 @@ export const certificationPaths: CertificationPath[] = [
     issuer: "Huawei ICT Academy - acceso anunciado por UTP",
     summary:
       "UTP anunció su incorporación a Huawei ICT Academy y rutas tecnológicas; la vigencia, el nivel y la especialidad deben confirmarse para cada convocatoria.",
+    whatItIs:
+      "Es una ruta de formación y certificación en tecnologías Huawei vinculada a Huawei ICT Academy. UTP anunció su incorporación a la academia, pero debe confirmar la especialidad y convocatoria vigentes.",
+    whyItMatters:
+      "Una certificación obtenida puede demostrar competencias de la especialidad y el nivel evaluados. No garantiza empleo y no debe suponerse un nivel HCIA, HCIP o HCIE sin la convocatoria exacta.",
+    practicalUses: [
+      "Seguir una ruta de aprendizaje estructurada por especialidad y nivel",
+      "Presentar la certificación obtenida como evidencia verificable",
+      "Explorar actividades ICT Academy cuando UTP anuncie que están activas",
+    ],
     careers: SOFTWARE_AND_SYSTEMS,
     requirements: [
       careerRequirement(
@@ -390,10 +496,11 @@ export const certificationPaths: CertificationPath[] = [
       ),
     ],
     characteristics: [
-      "Proveedor tecnológico: Huawei ICT Academy",
-      "Rutas con niveles HCIA, HCIP y HCIE",
-      "Especialidad y convocatoria sujetas a la oferta vigente",
+      "Quién ofrece la formación: Huawei ICT Academy",
+      "Cómo se organizan los niveles: HCIA, HCIP y HCIE",
+      "Qué especialidad y convocatoria están disponibles",
     ],
+    clarifications: HUAWEI_CLARIFICATIONS,
     nextStep:
       "Solicita a tu facultad la ruta Huawei vigente para tu carrera, sede y avance académico.",
     availabilityLabel: "Ruta, nivel y convocatoria por confirmar",
@@ -418,6 +525,15 @@ export const certificationPaths: CertificationPath[] = [
     issuer: "Google Cloud - preparación anunciada por UTP",
     summary:
       "Ingeniería de Software anuncia una ruta para prepararte hacia la certificación Associate Cloud Engineer de Google Cloud.",
+    whatItIs:
+      "Es una certificación externa de Google Cloud obtenida mediante un examen oficial. UTP anuncia una ruta de preparación para estudiantes de Ingeniería de Software.",
+    whyItMatters:
+      "Valida conocimientos para desplegar, proteger y operar soluciones en Google Cloud dentro del alcance publicado para el examen.",
+    practicalUses: [
+      "Guiar tu práctica con los objetivos oficiales del examen",
+      "Añadir la certificación aprobada a tu CV o LinkedIn",
+      "Sustentar conocimientos para prácticas o roles iniciales de nube",
+    ],
     careers: SOFTWARE_CAREERS,
     requirements: [
       careerRequirement("google-ace-career", "Pertenecer a Ingeniería de Software"),
@@ -462,6 +578,15 @@ export const certificationPaths: CertificationPath[] = [
     issuer: "UTP - preparación; TOEIC - evaluación externa",
     summary:
       "Programa virtual de inglés que prepara al estudiante para rendir TOEIC y que exige matrícula e Inglés IV.",
+    whatItIs:
+      "Es un programa virtual de preparación en inglés ofrecido por UTP. Participar en English Discoveries no equivale a obtener automáticamente una certificación TOEIC.",
+    whyItMatters:
+      "Te permite practicar por niveles y prepararte para una evaluación externa de inglés con una ruta guiada de diez semanas.",
+    practicalUses: [
+      "Conocer tu nivel mediante el Placement Test",
+      "Practicar inglés de forma estructurada y virtual",
+      "Decidir posteriormente si rendir una evaluación TOEIC externa",
+    ],
     requirements: [
       {
         id: "english-discoveries-enrolled",
@@ -513,6 +638,15 @@ export const certificationPaths: CertificationPath[] = [
     issuer: "Entidad externa; convalidación evaluada por UTP",
     summary:
       "Un certificado o examen internacional puede permitirte convalidar cursos de Inglés, sujeto a tu cohorte, modalidad y validación documental.",
+    whatItIs:
+      "Es un procedimiento académico de UTP para reconocer determinados certificados o exámenes externos de inglés. No es una nueva certificación profesional emitida por UTP.",
+    whyItMatters:
+      "Si tu documento, puntaje y modalidad cumplen el lineamiento, la aprobación puede evitar que curses algunos niveles de Inglés del plan de estudios.",
+    practicalUses: [
+      "Comparar tu certificado y puntaje con el lineamiento vigente",
+      "Solicitar la convalidación dentro del calendario académico",
+      "Planificar los cursos de inglés que aún necesitarías completar",
+    ],
     requirements: [
       {
         id: "external-english-certificate",
@@ -561,6 +695,15 @@ export const certificationPaths: CertificationPath[] = [
     issuer: "UTP",
     summary:
       "Alternativa institucional para acreditar niveles de Inglés del plan de estudios sin presentar un certificado externo.",
+    whatItIs:
+      "Es una evaluación interna de UTP para acreditar niveles de Inglés del plan de estudios. No es una certificación internacional externa.",
+    whyItMatters:
+      "Si alcanzas el resultado exigido y UTP lo valida, puedes acreditar niveles de inglés sin presentar un certificado de otra institución.",
+    practicalUses: [
+      "Elegir una alternativa a la convalidación con certificado externo",
+      "Planificar qué niveles del plan podrías acreditar",
+      "Conservar el resultado institucional validado por UTP",
+    ],
     requirements: [
       {
         id: "utp-english-student",

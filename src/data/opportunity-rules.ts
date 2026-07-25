@@ -156,6 +156,9 @@ const OPPORTUNITY_GATES: Record<string, ProfileGate[]> = {
   "empleabilidad-feria-laboral": [
     { id: "student-or-graduate-fair", label: "Ser estudiante o egresado UTP", kind: "student_status", allowed: ["active", "graduate"] },
   ],
+  "empleabilidad-intercorp-utp": [
+    { id: "student-or-graduate-intercorp", label: "Ser estudiante o egresado UTP", kind: "student_status", allowed: ["active", "graduate"] },
+  ],
   "empleabilidad-english-discoveries": [
     yes("enrolled-english", "Estar matriculado en el periodo", "enrolledCurrentTerm"),
     yes("english-four", "Haber aprobado o convalidado Inglés IV", "englishIVPassed"),
