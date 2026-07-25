@@ -15,6 +15,7 @@ export interface OcrAcademicImport {
   academicRank?: AcademicRank;
   englishIVPassed?: TriState;
   documentType: "schedule" | "grades" | "academic_summary";
+  documentContext: "student_provided" | "demo";
 }
 
 type OcrPhase = "idle" | "processing" | "review" | "error";
@@ -249,21 +250,36 @@ function extractAcademicImport(text: string): OcrAcademicImport {
   const cumulativeGpa = detectedNumber(plain, [/promedio(?: ponderado)? acumulado\s*[:\-]?\s*(\d{1,2}(?:[.,]\d{1,2})?)/i]);
   const approvedCredits = detectedNumber(plain, [/creditos aprobados(?: acumulados)?\s*[:\-]?\s*(\d{1,3}(?:[.,]\d)?)/i]);
   const currentPeriodCredits = detectedNumber(plain, [/creditos(?: del)? periodo actual\s*[:\-]?\s*(\d{1,2}(?:[.,]\d)?)/i]);
-  const weeklyHoursCurrent = detectedNumber(plain, [/horas semanales(?: actuales)?\s*[:\-]?\s*(\d{1,2}(?:[.,]\d)?)/i]);
+  const weeklyHoursPrevious = detectedNumber(plain, [
+    /horas semanales(?: del)? periodo anterior\s*[:\-]?\s*(\d{1,2}(?:[.,]\d)?)/i,
+  ]);
+  const weeklyHoursCurrent = detectedNumber(plain, [
+    /horas semanales(?: actuales| del periodo actual)?\s*[:\-]?\s*(\d{1,2}(?:[.,]\d)?)/i,
+  ]);
   const lower = plain.toLowerCase();
   const academicRank: AcademicRank | undefined = lower.includes("decimo superior") ? "top_tenth" : lower.includes("quinto superior") ? "top_fifth" : lower.includes("tercio superior") ? "top_third" : undefined;
   const englishIVPassed: TriState | undefined = /ingles (?:iv|1v)\s*(?:aprobado|convalidado)/i.test(plain) ? "yes" : undefined;
+  const documentContext = /datos? de prueba|no oficial|demostracion|documento ficticio/i.test(plain)
+    ? "demo" as const
+    : "student_provided" as const;
+  const documentType = /ficha academica|resumen academico|promedio ponderado acumulado/i.test(plain)
+    ? "academic_summary" as const
+    : /horario|matricula|cursos del periodo actual/i.test(plain)
+      ? "schedule" as const
+      : "grades" as const;
   return {
     metrics: {
       ...(lastPeriodGpa !== undefined ? { lastPeriodGpa } : {}),
       ...(currentPeriodCredits !== undefined ? { currentPeriodCredits } : {}),
       ...(weeklyHoursCurrent !== undefined ? { weeklyHoursCurrent } : {}),
+      ...(weeklyHoursPrevious !== undefined ? { weeklyHoursPrevious } : {}),
     },
     cumulativeGpa,
     approvedCredits,
     academicRank,
     englishIVPassed,
-    documentType: "schedule",
+    documentType,
+    documentContext,
   };
 }
 
@@ -503,12 +519,21 @@ export function OcrCourseImporter({ onImport }: OcrCourseImporterProps) {
           <div className="rounded-xl border border-status-info/20 bg-status-info-soft p-4">
             <h3 className="text-sm font-bold text-status-info">Datos académicos propuestos</h3>
             <p className="mt-1 text-xs leading-5 text-canvas-foreground/60">Se incorporarán solo después de pulsar el botón de confirmación. Puedes corregirlos luego en el resumen académico.</p>
+            {academicImport.documentContext === "demo" && (
+              <div className="mt-3 flex items-start gap-2 rounded-lg border border-amber-300/55 bg-amber-50 px-3 py-2.5 text-amber-950">
+                <AlertIcon width={15} height={15} className="mt-0.5 shrink-0" />
+                <p className="text-xs leading-5">
+                  La imagen se identifica como datos de prueba o no oficiales. Sus valores se guardarán como simulación y no como información verificada por la UTP.
+                </p>
+              </div>
+            )}
             <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold">
               {academicImport.metrics.lastPeriodGpa !== undefined && <span className="rounded-full bg-white px-3 py-1.5">Periodo anterior: {academicImport.metrics.lastPeriodGpa}</span>}
               {academicImport.cumulativeGpa !== undefined && <span className="rounded-full bg-white px-3 py-1.5">Acumulado: {academicImport.cumulativeGpa}</span>}
               {academicImport.approvedCredits !== undefined && <span className="rounded-full bg-white px-3 py-1.5">Créditos aprobados: {academicImport.approvedCredits}</span>}
-              {academicImport.metrics.weeklyHoursCurrent !== undefined && <span className="rounded-full bg-white px-3 py-1.5">Horas semanales: {academicImport.metrics.weeklyHoursCurrent}</span>}
-              {academicImport.academicRank && <span className="rounded-full bg-white px-3 py-1.5">Posición académica detectada</span>}
+              {academicImport.metrics.weeklyHoursCurrent !== undefined && <span className="rounded-full bg-white px-3 py-1.5">Horas actuales: {academicImport.metrics.weeklyHoursCurrent}</span>}
+              {academicImport.metrics.weeklyHoursPrevious !== undefined && <span className="rounded-full bg-white px-3 py-1.5">Horas del periodo anterior: {academicImport.metrics.weeklyHoursPrevious}</span>}
+              {academicImport.academicRank && <span className="rounded-full bg-white px-3 py-1.5">Posición académica detectada · {academicImport.documentContext === "demo" ? "simulada" : "revisar fuente"}</span>}
               {Object.keys(academicImport.metrics).length === 0 && academicImport.cumulativeGpa === undefined && academicImport.approvedCredits === undefined && !academicImport.academicRank && <span className="text-canvas-foreground/55">No se detectaron métricas en esta captura.</span>}
             </div>
           </div>

@@ -118,12 +118,11 @@ const OPPORTUNITY_GATES: Record<string, ProfileGate[]> = {
   ],
   "beca-excelencia-academica": [
     no("no-failed-excellence", "No tener cursos desaprobados en el periodo anterior", "failedLastPeriod"),
-    {
-      id: "academic-merit",
-      label: "Estar entre los mejores promedios de la carrera y campus",
-      kind: "academic_rank",
-      allowed: ["top_tenth", "top_fifth", "top_third"],
-    },
+    yes(
+      "second-period-excellence",
+      "Haber completado al menos un periodo regular previo en la UTP",
+      "continuousStudent"
+    ),
   ],
   "beca-alto-potencial-bap": [
     {

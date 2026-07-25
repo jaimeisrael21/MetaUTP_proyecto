@@ -1,7 +1,7 @@
 import type { Opportunity } from "./types";
 
 // Fuente de todos los datos: UTP_PDFs_Oficiales/ (extraído de info.utp.edu.pe y del
-// Reglamento de Becas de Pregrado). Fecha de referencia "hoy" para las ventanas: 2026-07-18.
+// Reglamento de Becas de Pregrado). Catálogo revisado al 2026-07-25.
 // No se inventó ninguna fecha, monto ni umbral que no estuviera en las fuentes.
 
 export const opportunities: Opportunity[] = [
@@ -138,7 +138,7 @@ export const opportunities: Opportunity[] = [
     title: "Beca por Discapacidad",
     category: "Becas",
     shortDescription:
-      "Descuento de 10% a 50% en pensiones para estudiantes con discapacidad permanente registrada en CONADIS. Vence hoy.",
+      "Descuento de 10% a 50% para estudiantes con discapacidad permanente registrada en CONADIS. La ventana 2026-I cerró el 18 de julio.",
     longDescription:
       "Beneficio para alumnos continuos de Pregrado Regular y CGT con discapacidad permanente registrada en CONADIS. El descuento en cuotas varía de 10% a 50%, previa evaluación del expediente.",
     requirements: [
@@ -174,16 +174,16 @@ export const opportunities: Opportunity[] = [
       sourceNote:
         "El umbral de promedio ponderado (12) se confirma cruzando con el Reglamento de Becas de Pregrado; el artículo individual no lo menciona explícitamente.",
     },
-    lastUpdated: "2026-07-18",
+    lastUpdated: "2026-07-25",
     actionNote:
-      "Esta ventana vence HOY (18 de julio). Registra tu solicitud en UTP+ Portal (trámite 'Beca por Orfandad/Discapacidad'), paga el derecho a trámite y adjunta el expediente completo (carnet CONADIS, Ficha de Evaluación Socioeconómica, Declaración Jurada Beca UTP).",
+      "La ventana 2026-I cerró el 18 de julio. Revisa el próximo cronograma en UTP+ Portal y prepara con anticipación el carnet CONADIS, la Ficha de Evaluación Socioeconómica y la Declaración Jurada Beca UTP.",
   },
   {
     id: "beca-por-orfandad",
     title: "Beca por Orfandad",
     category: "Becas",
     shortDescription:
-      "Descuento de 10% a 100% en pensiones para estudiantes cuyo padre, madre o responsable de pago ha fallecido. Vence hoy.",
+      "Descuento de 10% a 100% para estudiantes que perdieron a su padre, madre o responsable de pago. La ventana 2026-I cerró el 18 de julio.",
     longDescription:
       "Beneficio para alumnos continuos de Pregrado Regular y CGT cuando el padre, madre o tutor responsable de los pagos fallece. El descuento en cuotas varía de 10% a 100%, previa evaluación del expediente.",
     requirements: [
@@ -221,9 +221,9 @@ export const opportunities: Opportunity[] = [
       sourceNote:
         "El umbral de promedio ponderado (12) se confirma cruzando con el Reglamento de Becas de Pregrado; el artículo individual no lo menciona explícitamente.",
     },
-    lastUpdated: "2026-07-18",
+    lastUpdated: "2026-07-25",
     actionNote:
-      "Esta ventana vence HOY (18 de julio). Registra tu solicitud en UTP+ Portal (trámite 'Beca por Orfandad/Discapacidad'), paga el derecho a trámite y adjunta el expediente completo.",
+      "La ventana 2026-I cerró el 18 de julio. Revisa el próximo cronograma en UTP+ Portal y prepara con anticipación los documentos sustentatorios del expediente.",
   },
   {
     id: "beca-prodac",
@@ -321,9 +321,9 @@ export const opportunities: Opportunity[] = [
     title: "Beca Excelencia Académica",
     category: "Becas",
     shortDescription:
-      "20% de descuento automático en pensiones por mérito académico, sin necesidad de postular.",
+      "Hasta 20% de descuento automático por mérito académico, aplicado en el siguiente periodo regular.",
     longDescription:
-      "Beca otorgada automáticamente por la UTP a los estudiantes con mejor rendimiento académico (sin cursos desaprobados) de cada campus y carrera, hasta un cupo de 3,500 becas por ciclo. Otorga 20% de descuento en las pensiones.",
+      "Beca otorgada automáticamente por la UTP a partir del segundo periodo de permanencia. Distribuye 3,500 beneficios por orden de mérito, proporcionalmente por campus y carrera, y aplica hasta 20% de descuento en las pensiones del siguiente periodo regular.",
     requirements: [
       {
         id: "beca-excelencia-academica-req-1",
@@ -334,6 +334,20 @@ export const opportunities: Opportunity[] = [
       {
         id: "beca-excelencia-academica-req-2",
         description:
+          "Haber estado matriculado y culminado al menos 18 horas de clase semanales en el periodo regular anterior.",
+        type: "numeric_hours",
+        metric: "weekly_hours_previous",
+        threshold: 18,
+        comparator: ">=",
+      },
+      {
+        id: "beca-excelencia-academica-req-3",
+        description: "Haber completado al menos un periodo regular previo en la UTP.",
+        type: "boolean",
+      },
+      {
+        id: "beca-excelencia-academica-req-4",
+        description:
           "Ubicarte dentro del grupo de mejores promedios por mérito académico de tu campus y carrera (cupo limitado a 3,500 becas por ciclo).",
         type: "non_verifiable",
         nonVerifiableNote:
@@ -342,15 +356,16 @@ export const opportunities: Opportunity[] = [
     ],
     windowStart: null,
     windowEnd: null,
+    alwaysVisible: true,
     source: {
-      label: "Reglamento de Becas de Pregrado — Beca Excelencia Académica",
-      url: "https://www.utp.edu.pe/web/sites/default/files/transparencia/Reglamento%20de%20Becas%20de%20pregrado%20v10_REV%20GCB%20-%20VF%20PT.pdf",
+      label: "Reglamento de Becas de Pregrado UTP V18 — capítulo VII",
+      url: "https://www.utp.edu.pe/web/sites/default/files/2026-06/Reglamento_de_Becas_de_Pregrado_V18_PT.pdf",
       sourceNote:
-        "Esta beca no tiene artículo individual propio en UTP+ Info; los datos provienen del Reglamento de Becas de Pregrado (Código REC-RG0008, V10, aprobado por Resolución Rectoral N° 0144-2023/R-UTP). UTP publicó posteriormente una versión más reciente (V14, 2025) en utp.edu.pe.",
+        "Artículos 30 al 33 de la versión 18, aprobada por Resolución Rectoral N.° 0199-2026/R-UTP. El reglamento no fija una nota de corte ni exige pertenecer literalmente al tercio superior: la asignación depende del orden de mérito por campus y carrera.",
     },
-    lastUpdated: "2026-07-18",
+    lastUpdated: "2026-07-25",
     actionNote:
-      "No requiere postulación: si cumples el mérito académico dentro del cupo, la UTP asigna el descuento automáticamente. Verifica tu estado en UTP+ Portal.",
+      "No requiere una postulación convencional: la UTP realiza la asignación automática con los resultados del periodo culminado. Revisa UTP+ Portal y tu correo institucional para confirmar el beneficio y el porcentaje otorgado.",
   },
   {
     id: "beca-alto-potencial-bap",
@@ -1265,7 +1280,7 @@ export const opportunities: Opportunity[] = [
     title: "Convenio IDAT",
     category: "Convenios",
     shortDescription:
-      "Hasta 25% de descuento en pensión para egresados de IDAT. Vence en pocos días (21 de julio).",
+      "Hasta 25% de descuento en pensión para egresados de IDAT. La ventana 2026-I cerró el 21 de julio.",
     longDescription:
       "Beneficio para alumnos de Pregrado y CGT que egresaron de IDAT. El porcentaje de descuento (hasta 25%) depende del periodo de ingreso a la universidad. Se renueva automáticamente si se cumplen todos los requisitos y no hay cambios de carrera, campus o modalidad.",
     requirements: [
@@ -1290,16 +1305,16 @@ export const opportunities: Opportunity[] = [
       label: "UTP+ Info — Convenio IDAT",
       url: "https://info.utp.edu.pe/articulo/KA-01965",
     },
-    lastUpdated: "2026-07-18",
+    lastUpdated: "2026-07-25",
     actionNote:
-      "Ingresa tu solicitud en UTP+ Portal → Trámites → Becas y Convenios → 'Convenio Egresados Zegel IPAE, IDAT e Innova Schools', seleccionando IDAT. Respuesta en 3 días hábiles.",
+      "La ventana 2026-I ya cerró. Revisa el próximo cronograma en UTP+ Portal → Trámites → Becas y Convenios y ten preparada la constancia de egreso de IDAT.",
   },
   {
     id: "convenio-innova-schools",
     title: "Convenio Innova Schools",
     category: "Convenios",
     shortDescription:
-      "15% de descuento en pensión para egresados de Innova Schools (desde agosto 2018). Vence en pocos días (21 de julio).",
+      "15% de descuento para egresados de Innova Schools (desde agosto de 2018). La ventana 2026-I cerró el 21 de julio.",
     longDescription:
       "Beneficio para alumnos de Pregrado y CGT que culminaron sus estudios en Innova Schools, iniciados desde el periodo agosto 2018 en adelante. Otorga 15% de descuento en pensión y se renueva automáticamente si se cumplen todos los requisitos y no hay cambios de carrera, campus o modalidad.",
     requirements: [
@@ -1325,16 +1340,16 @@ export const opportunities: Opportunity[] = [
       label: "UTP+ Info — Convenio Innova Schools",
       url: "https://info.utp.edu.pe/articulo/KA-01967",
     },
-    lastUpdated: "2026-07-18",
+    lastUpdated: "2026-07-25",
     actionNote:
-      "Ingresa tu solicitud en UTP+ Portal → Trámites → Becas y Convenios → 'Convenio Egresados Zegel IPAE, IDAT e Innova Schools', seleccionando Innova Schools. Respuesta en 3 días hábiles.",
+      "La ventana 2026-I ya cerró. Revisa el próximo cronograma en UTP+ Portal → Trámites → Becas y Convenios y confirma con anticipación tu condición de egresado de Innova Schools.",
   },
   {
     id: "convenio-intercorp",
     title: "Convenio Intercorp",
     category: "Convenios",
     shortDescription:
-      "20% de descuento en pensión para colaboradores del Grupo Intercorp y sus cónyuges o hijos. Vence en pocos días (21 de julio).",
+      "20% de descuento para colaboradores del Grupo Intercorp y sus cónyuges o hijos. La ventana 2026-I cerró el 21 de julio.",
     longDescription:
       "Beneficio para alumnos de Pregrado y CGT que sean colaboradores, cónyuges o hijos de colaboradores del Grupo Intercorp. Otorga 20% de descuento en pensión. A diferencia de otros convenios educativos, este NO se renueva automáticamente: debe solicitarse cada periodo.",
     requirements: [
@@ -1359,16 +1374,16 @@ export const opportunities: Opportunity[] = [
       label: "UTP+ Info — Convenio Intercorp",
       url: "https://info.utp.edu.pe/articulo/KA-01935",
     },
-    lastUpdated: "2026-07-18",
+    lastUpdated: "2026-07-25",
     actionNote:
-      "Ingresa tu solicitud en UTP+ Portal → Trámites → Becas y Convenios → 'Convenio de Grupo Intercorp', indicando tu tipo de beneficiario. Debes solicitar la renovación cada periodo (no es automática). Respuesta en 3 días hábiles.",
+      "La ventana 2026-I ya cerró. Revisa el próximo cronograma en UTP+ Portal → Trámites → Becas y Convenios y recuerda que este convenio debe solicitarse nuevamente cada periodo.",
   },
   {
     id: "convenio-zegel-ipae",
     title: "Convenio Zegel IPAE",
     category: "Convenios",
     shortDescription:
-      "Hasta 25% de descuento en pensión para egresados de Zegel IPAE. Vence en pocos días (21 de julio).",
+      "Hasta 25% de descuento para egresados de Zegel IPAE. La ventana 2026-I cerró el 21 de julio.",
     longDescription:
       "Beneficio para alumnos de Pregrado y CGT que egresaron de Zegel IPAE. El porcentaje de descuento (hasta 25%) depende del periodo de ingreso a la universidad. Se renueva automáticamente si se cumplen todos los requisitos y no hay cambios de carrera, campus o modalidad.",
     requirements: [
@@ -1393,16 +1408,16 @@ export const opportunities: Opportunity[] = [
       label: "UTP+ Info — Convenio Zegel IPAE",
       url: "https://info.utp.edu.pe/articulo/KA-01966",
     },
-    lastUpdated: "2026-07-18",
+    lastUpdated: "2026-07-25",
     actionNote:
-      "Ingresa tu solicitud en UTP+ Portal → Trámites → Becas y Convenios → 'Convenio Egresados Zegel IPAE, IDAT e Innova Schools', seleccionando Zegel IPAE. Respuesta en 3 días hábiles.",
+      "La ventana 2026-I ya cerró. Revisa el próximo cronograma en UTP+ Portal → Trámites → Becas y Convenios y ten preparada la constancia de egreso de Zegel IPAE.",
   },
   {
     id: "convenio-otros-convenios",
     title: "Otros Convenios (vínculo laboral corporativo)",
     category: "Convenios",
     shortDescription:
-      "Descuento variable en pensión para estudiantes con vínculo laboral en empresas de la Guía de Becas y Convenios. Vence hoy.",
+      "Descuento variable para estudiantes con vínculo laboral en empresas de la Guía de Becas y Convenios. La ventana 2026-I cerró el 18 de julio.",
     longDescription:
       "Beneficio para alumnos continuos de Pregrado Regular y CGT que tengan un vínculo laboral con alguna de las entidades o empresas listadas en la 'Guía de Becas y Convenios' de la UTP. El porcentaje de descuento varía según el convenio específico. Esta guía no está publicada como artículo público; se referencia como documento disponible en UTP+ Portal (con sesión de estudiante) y en el Portal de Transparencia UTP.",
     requirements: [
@@ -1430,8 +1445,8 @@ export const opportunities: Opportunity[] = [
       label: "UTP+ Info — Otros Convenios",
       url: "https://info.utp.edu.pe/articulo/KA-01801",
     },
-    lastUpdated: "2026-07-18",
+    lastUpdated: "2026-07-25",
     actionNote:
-      "Esta ventana vence HOY (18 de julio) y NO se renueva automáticamente. Registra tu solicitud en UTP+ Portal → Solicitudes SAE → 'Convenio' (según el tipo requerido), adjuntando los documentos indicados en la Guía de Becas y Convenios.",
+      "La ventana 2026-I cerró el 18 de julio y este beneficio no se renueva automáticamente. Revisa el próximo cronograma en UTP+ Portal → Solicitudes SAE → 'Convenio' y prepara los documentos indicados en la Guía de Becas y Convenios.",
   },
 ];

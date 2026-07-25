@@ -49,18 +49,34 @@ export default function OportunidadDetailPage() {
     else if (!profile.onboarded) router.replace("/configurar");
     else if (!profile.academicSetupComplete) router.replace("/panel?setup=1");
     else if (!profile.profileRefined) router.replace("/personalizar");
-    else if (opportunity && !isPersonalizedOpportunityVisible(evaluateOpportunity(opportunity, profile))) router.replace("/oportunidades");
+    else if (opportunity) {
+      const evaluation = evaluateOpportunity(opportunity, profile);
+      const canOpenAsReference = evaluation.window.status === "closed";
+      if (!canOpenAsReference && !isPersonalizedOpportunityVisible(evaluation, opportunity)) {
+        router.replace("/oportunidades");
+      }
+    }
   }, [sessionHydrated, profileHydrated, session.loggedIn, profile, opportunity, router]);
 
   if (!opportunity) notFound();
   if (!profileHydrated || !profile.onboarded || !profile.academicSetupComplete || !profile.profileRefined) return null;
 
   const evaluation = evaluateOpportunity(opportunity, profile);
-  if (!isPersonalizedOpportunityVisible(evaluation)) return null;
+  const canOpenAsReference = evaluation.window.status === "closed";
+  if (!canOpenAsReference && !isPersonalizedOpportunityVisible(evaluation, opportunity)) return null;
   const informational = opportunity.actionability === "informational";
   const match = MATCH_LABEL[evaluation.matchState];
   const totalSignals = evaluation.comparisonTotal;
   const confirmedSignals = evaluation.confirmedCount;
+  const academicSourceLabel = profile.dataProvenance.academicSource === "institutional"
+    ? "datos verificados por UTP"
+    : profile.dataProvenance.academicSource === "demo"
+      ? "un escenario de demostración"
+      : profile.dataProvenance.academicSource === "ocr"
+        ? "datos extraídos por OCR y revisados por ti"
+        : profile.dataProvenance.academicSource === "manual"
+          ? "datos registrados por ti"
+          : "los datos disponibles en tu perfil";
 
   return (
     <AppShell>
@@ -120,14 +136,23 @@ export default function OportunidadDetailPage() {
           <div className="mt-5 flex items-start gap-3 rounded-2xl border border-status-info/20 bg-status-info-soft px-5 py-4">
             <AlertIcon width={17} height={17} className="mt-0.5 shrink-0 text-status-pending" />
             <p className="text-sm leading-6 text-canvas-foreground/70">
-              Este resultado compara datos declarados por ti con requisitos documentados.
+              Este resultado compara {academicSourceLabel} con requisitos documentados.
               “Validación oficial” significa que la universidad o entidad responsable debe
               confirmar ese punto; no equivale a rechazo ni a aprobación.
             </p>
           </div>
         )}
 
-        {!informational && (
+        {!informational && profile.dataProvenance.documentContext === "demo" && (
+          <div className="mt-3 flex items-start gap-3 rounded-2xl border border-amber-300/55 bg-amber-50 px-5 py-4 text-amber-950">
+            <AlertIcon width={17} height={17} className="mt-0.5 shrink-0" />
+            <p className="text-sm leading-6">
+              Estás viendo una simulación. Las coincidencias sirven para demostrar el funcionamiento de MetaUTP, pero no acreditan notas, posición académica ni elegibilidad ante la UTP.
+            </p>
+          </div>
+        )}
+
+        {!informational && evaluation.window.status !== "closed" && (
           <Link
             href={`/simulador?oportunidad=${opportunity.id}`}
             className="mt-6 flex items-center justify-between gap-3 rounded-2xl bg-sidebar px-5 py-4 text-sidebar-foreground transition-opacity hover:opacity-90"

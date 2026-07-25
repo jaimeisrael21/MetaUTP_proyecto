@@ -6,6 +6,7 @@
 export type RequirementType =
   | "numeric_gpa" // promedio ponderado mínimo
   | "numeric_credits" // créditos aprobados mínimos
+  | "numeric_hours" // horas de clase semanales mínimas
   | "numeric_cycle" // ciclo mínimo (ej. "7mo ciclo en adelante")
   | "boolean" // condición sí/no verificable con los datos que el alumno ingresa
   | "non_verifiable"; // depende de un trámite/documento oficial que la app no puede confirmar
@@ -57,6 +58,7 @@ export interface Opportunity {
   lastUpdated: string; // ISO "YYYY-MM-DD" — fecha en que se extrajo/confirmó el dato
   actionNote?: string; // siguiente acción concreta, ej. "Postula en Bienestar Universitario"
   actionability?: "application" | "informational"; // informational = referencia útil, sin postulación individual
+  alwaysVisible?: boolean; // oportunidades permanentes que conviene conocer aun si hoy falta una condición
   featured?: boolean; // true para las 2-3 que se muestran como teaser en Bienvenida
 }
 
@@ -94,13 +96,17 @@ export const emptyAcademicMetrics: AcademicMetrics = {
 
 export interface DataProvenance {
   academicSource: "manual" | "ocr" | "demo" | "institutional" | "unknown";
+  academicRankSource: "declared" | "ocr" | "demo" | "institutional" | "unknown";
   documentType: "schedule" | "grades" | "academic_summary" | "none";
+  documentContext: "student_provided" | "demo" | "institutional" | "unknown";
   confirmedAt: string | null;
 }
 
 export const emptyDataProvenance: DataProvenance = {
   academicSource: "unknown",
+  academicRankSource: "unknown",
   documentType: "none",
+  documentContext: "unknown",
   confirmedAt: null,
 };
 

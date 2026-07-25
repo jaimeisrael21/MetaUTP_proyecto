@@ -16,7 +16,13 @@ export const DEMO_PROFILE: StudentProfile = {
     weeklyHoursCurrent: 22,
     weeklyHoursPrevious: 20,
   },
-  dataProvenance: { academicSource: "demo", documentType: "academic_summary", confirmedAt: "2026-03-01T12:00:00.000Z" },
+  dataProvenance: {
+    academicSource: "demo",
+    academicRankSource: "demo",
+    documentType: "academic_summary",
+    documentContext: "demo",
+    confirmedAt: "2026-03-01T12:00:00.000Z",
+  },
   courses: [
     { id: "demo-1", name: "Calidad de Software", credits: 4, grade: 16 },
     { id: "demo-2", name: "Diseño de Aplicaciones Web", credits: 4, grade: 17 },

@@ -48,7 +48,7 @@ function MiRutaContent() {
         const evaluation = evaluateOpportunity(opportunity, profile);
         return { opportunity, evaluation, index, ranking: rankOpportunity(opportunity, evaluation, profile) };
       })
-      .filter(({ opportunity, evaluation }) => opportunity.actionability !== "informational" && isPersonalizedOpportunityVisible(evaluation))
+      .filter(({ opportunity, evaluation }) => opportunity.actionability !== "informational" && isPersonalizedOpportunityVisible(evaluation, opportunity))
       .sort((a, b) => b.ranking.score - a.ranking.score || a.index - b.index),
     [profile]
   );

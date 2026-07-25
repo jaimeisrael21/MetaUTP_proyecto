@@ -5,6 +5,7 @@ import { notFound, useParams, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { AiOpportunityGuide } from "@/components/AiOpportunityGuide";
 import { AppShell } from "@/components/AppShell";
+import { InfoTooltip } from "@/components/InfoTooltip";
 import {
   AlertIcon,
   AwardIcon,
@@ -195,22 +196,51 @@ export default function CertificacionDetailPage() {
               <AwardIcon width={20} height={20} />
             </span>
             <div>
-              <h2 className="text-xl font-bold text-canvas-foreground">Qué incluye esta ruta</h2>
+              <h2 className="text-xl font-bold text-canvas-foreground">Lo que debes saber sobre esta ruta</h2>
               <p className="text-sm text-canvas-foreground/55">
-                Características informativas; no cuentan como requisitos.
+                Características, significado y alcance; no cuentan como requisitos.
               </p>
             </div>
           </div>
           <ul className="mt-5 grid gap-3 md:grid-cols-2">
-            {path.characteristics.map((item) => (
-              <li
-                key={item}
-                className="flex gap-3 rounded-2xl bg-canvas-soft px-4 py-3 text-sm leading-6 text-canvas-foreground/72"
-              >
-                <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-primary" />
-                {item}
-              </li>
-            ))}
+            {path.characteristics.map((item) => {
+              const clarification = path.clarifications?.find((entry) => entry.label === item);
+              return (
+                <li
+                  key={item}
+                  className="flex gap-3 rounded-2xl bg-canvas-soft px-4 py-3 text-sm leading-6 text-canvas-foreground/72"
+                >
+                  <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-primary" />
+                  <span>
+                    <span className="font-medium text-canvas-foreground/80">{item}</span>
+                    {clarification && (
+                      <>
+                        <InfoTooltip
+                          label={item}
+                          sourceLabel={path.sources[0]?.label}
+                          sourceUrl={path.sources[0]?.url}
+                        >
+                          <span className="block">{clarification.plainMeaning}</span>
+                          <span className="mt-2 block text-sidebar-muted">
+                            Para qué podría servir: {clarification.usefulness}
+                          </span>
+                          <span className="mt-2 block font-semibold text-amber-200">
+                            {clarification.basis === "official"
+                              ? "Dato publicado por UTP."
+                              : clarification.basis === "orientative"
+                                ? "Interpretación orientativa; alcance oficial por confirmar."
+                                : "Confirmación institucional pendiente."}
+                          </span>
+                        </InfoTooltip>
+                        <span className={`mt-2 block w-fit rounded-full px-2.5 py-1 text-[11px] font-bold ${clarification.basis === "official" ? "bg-status-met-soft text-status-met" : clarification.basis === "orientative" ? "bg-status-info-soft text-status-info" : "bg-status-pending-soft text-status-pending"}`}>
+                          {clarification.basis === "official" ? "Característica confirmada" : clarification.basis === "orientative" ? "Explicación orientativa" : "Por confirmar con UTP"}
+                        </span>
+                      </>
+                    )}
+                  </span>
+                </li>
+              );
+            })}
           </ul>
         </section>
 

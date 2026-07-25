@@ -133,21 +133,27 @@ export default function PanelPage() {
         credits: course.credits > 0 ? course.credits : previous.credits,
         grade: course.grade ?? previous.grade,
         weeklyHours: (course.weeklyHours ?? 0) > 0 ? course.weeklyHours : previous.weeklyHours,
-        source: "ocr",
+        source: academic.documentContext === "demo" ? "demo" : "ocr",
       };
     });
+    const importedSource = academic.documentContext === "demo" ? "demo" : "ocr";
+    const normalizedCourses = nextCourses.map((course) =>
+      imported.some((candidate) => normalizedCourseName(candidate.name) === normalizedCourseName(course.name))
+        ? { ...course, source: importedSource as Course["source"] }
+        : course
+    );
     const currentPeriodCredits = nextCourses.reduce(
       (sum, course) => sum + (Number.isFinite(course.credits) && course.credits > 0 ? course.credits : 0),
       0
     );
     update({
-      courses: nextCourses,
+      courses: normalizedCourses,
       cumulativeGpa: academic.cumulativeGpa ?? profile.cumulativeGpa,
       approvedCredits: academic.approvedCredits ?? profile.approvedCredits,
       academicMetrics: {
         ...profile.academicMetrics,
         ...academic.metrics,
-        currentCycleGpa: weightedAverage(nextCourses),
+        currentCycleGpa: weightedAverage(normalizedCourses),
         currentPeriodCredits: nextCourses.length > 0 ? currentPeriodCredits : null,
       },
       facts: {
@@ -156,8 +162,12 @@ export default function PanelPage() {
         ...(academic.englishIVPassed ? { englishIVPassed: academic.englishIVPassed } : {}),
       },
       dataProvenance: {
-        academicSource: "ocr",
+        academicSource: importedSource,
+        academicRankSource: academic.academicRank
+          ? academic.documentContext === "demo" ? "demo" : "ocr"
+          : profile.dataProvenance.academicRankSource,
         documentType: academic.documentType,
+        documentContext: academic.documentContext,
         confirmedAt: new Date().toISOString(),
       },
     });
@@ -186,7 +196,12 @@ export default function PanelPage() {
       academicSetupComplete: true,
       dataProvenance: {
         ...profile.dataProvenance,
-        academicSource: entryMethod === "ocr" ? "ocr" : profile.dataProvenance.academicSource === "ocr" ? "ocr" : "manual",
+        academicSource: entryMethod === "ocr"
+          ? profile.dataProvenance.documentContext === "demo" ? "demo" : "ocr"
+          : profile.dataProvenance.academicSource === "ocr" || profile.dataProvenance.academicSource === "demo"
+            ? profile.dataProvenance.academicSource
+            : "manual",
+        documentContext: entryMethod === "manual" ? "student_provided" : profile.dataProvenance.documentContext,
         confirmedAt: new Date().toISOString(),
       },
     });
@@ -308,13 +323,19 @@ export default function PanelPage() {
                 {entryMethod === "manual" ? "Déjalo vacío si no lo conoces. MetaUTP nunca lo calculará comparándote con otros usuarios." : "Elige un método abajo para incorporar otra captura o corregirlos manualmente."}
               </p>
             </div>
-            <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
               <label><span className="field-label flex min-h-10 items-end">Promedio periodo anterior</span><input type="number" min={0} max={20} step="0.01" value={profile.academicMetrics.lastPeriodGpa ?? ""} onChange={(event) => updateMetric("lastPeriodGpa", event.target.value)} disabled={entryMethod !== "manual"} className="field-control disabled:bg-canvas-soft disabled:text-canvas-foreground/65" placeholder="Por confirmar" /></label>
               <label><span className="field-label flex min-h-10 items-end">Promedio acumulado según tu récord</span><input type="number" min={0} max={20} step="0.01" value={profile.cumulativeGpa ?? ""} onChange={(event) => update({ cumulativeGpa: numericValue(event.target.value) })} disabled={entryMethod !== "manual"} className="field-control disabled:bg-canvas-soft disabled:text-canvas-foreground/65" placeholder="Por confirmar" /></label>
               <label><span className="field-label flex min-h-10 items-end">Créditos aprobados acumulados</span><input type="number" min={0} value={profile.approvedCredits ?? ""} onChange={(event) => update({ approvedCredits: numericValue(event.target.value) })} disabled={entryMethod !== "manual"} className="field-control disabled:bg-canvas-soft disabled:text-canvas-foreground/65" placeholder="Por confirmar" /></label>
               <label><span className="field-label flex min-h-10 items-end">Horas semanales actuales</span><input type="number" min={0} max={80} step="0.5" value={profile.academicMetrics.weeklyHoursCurrent ?? ""} onChange={(event) => updateMetric("weeklyHoursCurrent", event.target.value)} disabled={entryMethod !== "manual"} className="field-control disabled:bg-canvas-soft disabled:text-canvas-foreground/65" placeholder="Por confirmar" /></label>
+              <label><span className="field-label flex min-h-10 items-end">Horas semanales del periodo anterior</span><input type="number" min={0} max={80} step="0.5" value={profile.academicMetrics.weeklyHoursPrevious ?? ""} onChange={(event) => updateMetric("weeklyHoursPrevious", event.target.value)} disabled={entryMethod !== "manual"} className="field-control disabled:bg-canvas-soft disabled:text-canvas-foreground/65" placeholder="Por confirmar" /></label>
             </div>
-            <p className="mt-3 text-xs leading-5 text-canvas-foreground/50">El promedio y los créditos del ciclo actual se calculan únicamente con los cursos que confirmes.</p>
+            <div className="mt-4 rounded-xl bg-canvas-soft px-4 py-3 text-xs leading-5 text-canvas-foreground/60">
+              <p>El promedio y los créditos del ciclo actual se calculan únicamente con los cursos que confirmes.</p>
+              <p className="mt-1 font-semibold text-canvas-foreground/70">
+                Procedencia: {profile.dataProvenance.academicSource === "institutional" ? "verificada por UTP" : profile.dataProvenance.academicSource === "demo" ? "escenario de demostración" : profile.dataProvenance.academicSource === "ocr" ? "extraída por OCR y revisada por ti" : profile.dataProvenance.academicSource === "manual" ? "registrada manualmente por ti" : "sin registrar"}.
+              </p>
+            </div>
           </section>
         )}
 

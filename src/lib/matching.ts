@@ -39,6 +39,7 @@ export interface WindowInfo {
 const MARGIN: Record<string, number> = {
   numeric_gpa: 0.5,
   numeric_credits: 6,
+  numeric_hours: 2,
   numeric_cycle: 1,
 };
 
@@ -71,6 +72,11 @@ function inferredMetric(requirement: Requirement) {
   const description = normalizedDescription(requirement.description);
 
   if (requirement.type === "numeric_cycle") return "cycle" as const;
+  if (requirement.type === "numeric_hours") {
+    return description.includes("anterior")
+      ? "weekly_hours_previous" as const
+      : "weekly_hours_current" as const;
+  }
   if (requirement.type === "numeric_credits") {
     if (description.includes("horas") && description.includes("anterior")) {
       return "weekly_hours_previous" as const;
@@ -114,6 +120,7 @@ export function evaluateRequirement(
   const isNumeric =
     requirement.type === "numeric_gpa" ||
     requirement.type === "numeric_credits" ||
+    requirement.type === "numeric_hours" ||
     requirement.type === "numeric_cycle";
 
   if (isNumeric && requirement.threshold !== undefined) {
@@ -155,6 +162,24 @@ export function evaluateRequirement(
       detail:
         requirement.nonVerifiableNote ??
         "Necesitamos que confirmes este dato para personalizar mejor el resultado.",
+    };
+  }
+
+  if (requirement.id === "beca-excelencia-academica-req-4") {
+    const rankLabel = {
+      top_tenth: "décimo superior",
+      top_fifth: "quinto superior",
+      top_third: "tercio superior",
+      none: "ninguno de los grupos declarados",
+      unknown: "posición académica no registrada",
+    }[profile.facts.academicRank];
+    const rankContext = profile.facts.academicRank === "unknown"
+      ? "Aún no registraste una posición académica oficial."
+      : `Registraste ${rankLabel} como tu posición académica.`;
+    return {
+      requirement,
+      status: "official",
+      detail: `${rankContext} Es una señal orientativa, pero no confirma el beneficio: la UTP asigna el cupo comparando el orden de mérito completo por campus y carrera.`,
     };
   }
 
@@ -338,8 +363,12 @@ export function evaluateOpportunity(
  * oportunidades que contradicen un dato esencial declarado. Los requisitos
  * académicos que todavía no se cumplen sí permanecen visibles: son accionables.
  */
-export function isPersonalizedOpportunityVisible(evaluation: OpportunityEvaluation) {
+export function isPersonalizedOpportunityVisible(
+  evaluation: OpportunityEvaluation,
+  opportunity?: Opportunity
+) {
   if (evaluation.window.status === "closed") return false;
+  if (opportunity?.alwaysVisible) return true;
   if (evaluation.contextualUnknownCount > 0) return false;
   if (evaluation.essentialUnmetCount > 0) return false;
   return true;

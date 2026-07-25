@@ -95,9 +95,22 @@ export default function OportunidadesPage() {
   );
 
   const personalized = useMemo(
-    () => evaluatedAll.filter(({ evaluation }) => isPersonalizedOpportunityVisible(evaluation)),
+    () => evaluatedAll.filter(({ opportunity, evaluation }) => isPersonalizedOpportunityVisible(evaluation, opportunity)),
     [evaluatedAll]
   );
+
+  const closedReferences = useMemo(() => {
+    if (category === "Todas" || category === "Certificaciones") return [];
+    return evaluatedAll
+      .filter(
+        ({ opportunity, evaluation }) =>
+          opportunity.category === category && evaluation.window.status === "closed"
+      )
+      .sort((first, second) =>
+        (second.opportunity.windowEnd ?? "").localeCompare(first.opportunity.windowEnd ?? "")
+      )
+      .slice(0, 4);
+  }, [category, evaluatedAll]);
 
   const personalizedCertifications = useMemo(
     () =>
@@ -269,9 +282,41 @@ export default function OportunidadesPage() {
           {pageItems.length === 0 && (
             <div className="mt-5 rounded-2xl border border-dashed border-border-strong bg-white p-8 text-center">
               <CompassIcon className="mx-auto text-primary" width={28} height={28} />
-              <p className="mt-3 text-base font-bold text-canvas-foreground">No hay resultados en esta categoría.</p>
+              <p className="mt-3 text-base font-bold text-canvas-foreground">
+                No hay oportunidades abiertas en esta categoría que coincidan con tus datos.
+              </p>
+              <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-canvas-foreground/60">
+                {closedReferences.length > 0
+                  ? "Las oportunidades cerradas recientemente aparecen debajo como referencia para que puedas anticiparte a una próxima edición."
+                  : "Esto puede deberse a la vigencia de las convocatorias o a condiciones específicas del perfil; no significa que la categoría esté dañada."}
+              </p>
               <button type="button" onClick={() => chooseCategory("Todas")} className="secondary-button mt-4">Ver todas</button>
             </div>
+          )}
+
+          {closedReferences.length > 0 && (
+            <section className="mt-9" aria-labelledby="closed-reference-title">
+              <div>
+                <p className="eyebrow">Para anticiparte</p>
+                <h3 id="closed-reference-title" className="mt-1 text-xl font-bold text-canvas-foreground">
+                  Cerradas recientemente
+                </h3>
+                <p className="mt-1 max-w-3xl text-sm leading-6 text-canvas-foreground/60">
+                  No están disponibles para postular hoy. Se conservan como referencia y sus próximas fechas deben confirmarse en la fuente oficial.
+                </p>
+              </div>
+              <div className="opportunity-grid mt-4">
+                {closedReferences.map(({ opportunity, evaluation, ranking }, index) => (
+                  <OpportunityCard
+                    key={opportunity.id}
+                    opportunity={opportunity}
+                    evaluation={evaluation}
+                    rankingReason={ranking.reason}
+                    animationIndex={index}
+                  />
+                ))}
+              </div>
+            </section>
           )}
 
           {totalPages > 1 && (

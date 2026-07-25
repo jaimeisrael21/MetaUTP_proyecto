@@ -38,6 +38,18 @@ export interface CertificationSource {
   note?: string;
 }
 
+export type CertificationClarificationBasis =
+  | "official"
+  | "orientative"
+  | "pending";
+
+export interface CertificationClarification {
+  label: string;
+  plainMeaning: string;
+  usefulness: string;
+  basis: CertificationClarificationBasis;
+}
+
 export interface CertificationPath {
   id: string;
   title: string;
@@ -47,6 +59,7 @@ export interface CertificationPath {
   careers?: string[];
   requirements: CertificationRequirement[];
   characteristics: string[];
+  clarifications?: CertificationClarification[];
   nextStep: string;
   availabilityLabel: string;
   sources: CertificationSource[];
@@ -56,6 +69,99 @@ export interface CertificationPath {
 const SOFTWARE_CAREERS = ["ingenieria de software"];
 const SYSTEMS_CAREERS = ["ingenieria de sistemas e informatica", "ingenieria de sistemas"];
 const SOFTWARE_AND_SYSTEMS = [...SOFTWARE_CAREERS, ...SYSTEMS_CAREERS];
+
+const SOFTWARE_PROGRESSIVE_CLARIFICATIONS: CertificationClarification[] = [
+  {
+    label: "Tutor STEM - Física",
+    plainMeaning: "Interpretación orientativa: el título relaciona la credencial con el dominio y apoyo entre pares en contenidos de Física. La fuente pública no define sus evaluaciones ni habilita por sí sola una función docente formal.",
+    usefulness: "Puede ayudarte a evidenciar bases cuantitativas y capacidad para explicar problemas técnicos.",
+    basis: "orientative",
+  },
+  {
+    label: "Tutor STEM - Matemática",
+    plainMeaning: "Interpretación orientativa: el título vincula la credencial con el manejo y apoyo en contenidos de Matemática. UTP no publica en la malla el alcance exacto de la tutoría.",
+    usefulness: "Puede respaldar razonamiento lógico, resolución de problemas y apoyo académico entre estudiantes.",
+    basis: "orientative",
+  },
+  {
+    label: "Tutor STEM - Algorítmica",
+    plainMeaning: "Interpretación orientativa: se relaciona con comprender y explicar lógica de programación y resolución de problemas mediante algoritmos. El temario y la evaluación deben confirmarse con la facultad.",
+    usefulness: "Puede ser útil para demostrar fundamentos de programación y comunicación técnica.",
+    basis: "orientative",
+  },
+  {
+    label: "Excel Intermedio",
+    plainMeaning: "El nombre indica un nivel intermedio de uso de hojas de cálculo, pero la fuente pública no detalla funciones, herramientas ni prueba de certificación.",
+    usefulness: "Puede apoyar tareas de organización, análisis y presentación de datos.",
+    basis: "orientative",
+  },
+  {
+    label: "Desarrollador de Aplicaciones Móviles",
+    plainMeaning: "El título se refiere al desarrollo de aplicaciones para dispositivos móviles. La malla pública no especifica plataforma, tecnología, proyecto exigido ni proceso de emisión.",
+    usefulness: "Puede servir como evidencia académica para un portafolio orientado a desarrollo móvil.",
+    basis: "orientative",
+  },
+  {
+    label: "Soporte Técnico de Computadoras",
+    plainMeaning: "Interpretación orientativa: se vincula con diagnóstico, configuración y solución de incidencias básicas de hardware o software. El alcance exacto no está publicado.",
+    usefulness: "Puede respaldar competencias iniciales de asistencia técnica y mantenimiento.",
+    basis: "orientative",
+  },
+];
+
+const SYSTEMS_PROGRESSIVE_CLARIFICATIONS: CertificationClarification[] = [
+  {
+    label: "Asistente de Docencia en Matemática",
+    plainMeaning: "Interpretación orientativa: el título sugiere dominio y apoyo académico en Matemática. No equivale automáticamente a un nombramiento docente ni define funciones laborales.",
+    usefulness: "Puede evidenciar razonamiento cuantitativo y capacidad para acompañar el aprendizaje de otros.",
+    basis: "orientative",
+  },
+  {
+    label: "Asistente de Docencia en Física",
+    plainMeaning: "Interpretación orientativa: el título se relaciona con dominio y apoyo académico en Física. La fuente pública no detalla responsabilidades ni evaluación.",
+    usefulness: "Puede reforzar un perfil con bases científicas y capacidad de explicación.",
+    basis: "orientative",
+  },
+  {
+    label: "Asistente de Docencia en Algorítmica",
+    plainMeaning: "Interpretación orientativa: se vincula con fundamentos algorítmicos y apoyo en la comprensión de lógica de programación. UTP debe confirmar el alcance.",
+    usefulness: "Puede respaldar competencias de programación, análisis y comunicación técnica.",
+    basis: "orientative",
+  },
+  {
+    label: "Asesor en Excel Intermedio",
+    plainMeaning: "El título sugiere capacidad para orientar el uso intermedio de hojas de cálculo, pero la malla no publica una matriz concreta de herramientas o funciones.",
+    usefulness: "Puede ser útil en tareas de análisis, reportes y organización de información.",
+    basis: "orientative",
+  },
+  {
+    label: "Desarrollador de Aplicaciones Móviles",
+    plainMeaning: "El título se refiere al desarrollo de aplicaciones móviles; la tecnología, el proyecto exigido y el procedimiento de emisión deben confirmarse con la facultad.",
+    usefulness: "Puede aportar una evidencia académica para un portafolio de desarrollo móvil.",
+    basis: "orientative",
+  },
+];
+
+const CISCO_CLARIFICATIONS: CertificationClarification[] = [
+  {
+    label: "Proveedor tecnológico: Cisco",
+    plainMeaning: "UTP publica a Cisco como proveedor o aliado tecnológico relacionado con estas carreras.",
+    usefulness: "Te permite identificar el ecosistema tecnológico de la ruta antes de consultar la credencial concreta.",
+    basis: "official",
+  },
+  {
+    label: "La credencial concreta puede variar según el plan o la oferta vigente",
+    plainMeaning: "La página pública de UTP no identifica el nombre exacto, nivel, curso ni convocatoria de la credencial disponible para cada estudiante.",
+    usefulness: "Evita que te prepares para un examen distinto del que realmente ofrece tu facultad.",
+    basis: "pending",
+  },
+  {
+    label: "No se presenta como CCNA hasta que UTP identifique oficialmente esa ruta",
+    plainMeaning: "Cisco ofrece varias certificaciones. Mencionar al proveedor no demuestra que la oportunidad publicada por UTP corresponda específicamente a CCNA.",
+    usefulness: "Protege la recomendación frente a una asociación incorrecta y te indica qué preguntar a la facultad.",
+    basis: "pending",
+  },
+];
 
 const careerRequirement = (id: string, description: string): CertificationRequirement => ({
   id,
@@ -99,6 +205,7 @@ export const certificationPaths: CertificationPath[] = [
       "Desarrollador de Aplicaciones Móviles",
       "Soporte Técnico de Computadoras",
     ],
+    clarifications: SOFTWARE_PROGRESSIVE_CLARIFICATIONS,
     nextStep:
       "Consulta a tu facultad cuál corresponde a tu plan vigente y qué cursos aprobados habilitan su emisión.",
     availabilityLabel: "Disponible durante el avance de la carrera",
@@ -147,6 +254,7 @@ export const certificationPaths: CertificationPath[] = [
       "Asesor en Excel Intermedio",
       "Desarrollador de Aplicaciones Móviles",
     ],
+    clarifications: SYSTEMS_PROGRESSIVE_CLARIFICATIONS,
     nextStep:
       "Contrasta tu plan y tus cursos aprobados con la facultad antes de solicitar una constancia o certificación.",
     availabilityLabel: "Disponible durante el avance de la carrera",
@@ -193,6 +301,7 @@ export const certificationPaths: CertificationPath[] = [
       "La credencial concreta puede variar según el plan o la oferta vigente",
       "No se presenta como CCNA hasta que UTP identifique oficialmente esa ruta",
     ],
+    clarifications: CISCO_CLARIFICATIONS,
     nextStep:
       "Pregunta a tu facultad qué ruta Cisco está disponible para tu carrera, sede y ciclo, y cómo se accede.",
     availabilityLabel: "Oferta y convocatoria por confirmar",
