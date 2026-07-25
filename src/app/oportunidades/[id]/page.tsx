@@ -7,14 +7,17 @@ import { AppShell } from "@/components/AppShell";
 import { StatusBadge } from "@/components/StatusBadge";
 import { AiOpportunityGuide } from "@/components/AiOpportunityGuide";
 import { opportunities } from "@/data/opportunities";
-import { evaluateOpportunity, isPersonalizedOpportunityVisible } from "@/lib/matching";
+import {
+  evaluateOpportunity,
+  isPersonalizedOpportunityVisible,
+  isRelevantClosedOpportunity,
+} from "@/lib/matching";
 import type { OpportunityMatchState } from "@/lib/matching";
 import { useProfile, useSession } from "@/lib/store";
 import {
   AlertIcon,
   ChevronLeftIcon,
   ExternalLinkIcon,
-  RouteIcon,
 } from "@/components/icons";
 
 function formatDate(iso: string) {
@@ -51,7 +54,7 @@ export default function OportunidadDetailPage() {
     else if (!profile.profileRefined) router.replace("/personalizar");
     else if (opportunity) {
       const evaluation = evaluateOpportunity(opportunity, profile);
-      const canOpenAsReference = evaluation.window.status === "closed";
+      const canOpenAsReference = isRelevantClosedOpportunity(evaluation);
       if (!canOpenAsReference && !isPersonalizedOpportunityVisible(evaluation, opportunity)) {
         router.replace("/oportunidades");
       }
@@ -62,7 +65,7 @@ export default function OportunidadDetailPage() {
   if (!profileHydrated || !profile.onboarded || !profile.academicSetupComplete || !profile.profileRefined) return null;
 
   const evaluation = evaluateOpportunity(opportunity, profile);
-  const canOpenAsReference = evaluation.window.status === "closed";
+  const canOpenAsReference = isRelevantClosedOpportunity(evaluation);
   if (!canOpenAsReference && !isPersonalizedOpportunityVisible(evaluation, opportunity)) return null;
   const informational = opportunity.actionability === "informational";
   const match = MATCH_LABEL[evaluation.matchState];
@@ -150,19 +153,6 @@ export default function OportunidadDetailPage() {
               Estás viendo una simulación. Las coincidencias sirven para demostrar el funcionamiento de MetaUTP, pero no acreditan notas, posición académica ni elegibilidad ante la UTP.
             </p>
           </div>
-        )}
-
-        {!informational && evaluation.window.status !== "closed" && (
-          <Link
-            href={`/simulador?oportunidad=${opportunity.id}`}
-            className="mt-6 flex items-center justify-between gap-3 rounded-2xl bg-sidebar px-5 py-4 text-sidebar-foreground transition-opacity hover:opacity-90"
-          >
-            <span className="flex items-center gap-3 text-sm font-medium">
-              <RouteIcon width={18} height={18} />
-              Convierte estos requisitos en una ruta de próximos pasos
-            </span>
-            <span className="text-sm font-semibold text-primary">Crear mi ruta →</span>
-          </Link>
         )}
 
         {!informational && evaluation.gateEvaluations.length > 0 && (

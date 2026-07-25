@@ -201,7 +201,7 @@ export default function LoginPage() {
           <div className="mt-8 space-y-4">
             {[
               [CompassIcon, "Explora oportunidades ordenadas según tu perfil y por categoría."],
-              [GaugeIcon, "Simula escenarios sin confundir una proyección con una aceptación."],
+              [GaugeIcon, "Compara requisitos medibles sin confundir una orientación con una aceptación."],
               [ShieldIcon, "Tu cuenta es independiente: nunca pedimos la contraseña institucional."],
             ].map(([Icon, text]) => {
               const ItemIcon = Icon as typeof CompassIcon;

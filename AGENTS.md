@@ -64,14 +64,12 @@ src/app/                 rutas del App Router
   configuracion/         ajustes y preguntas de refinamiento
   panel/                 panel del estudiante
   oportunidades/         listado + [id] detalle
-  certificaciones/       (en revisión — ver notas de dominio)
-  simulador/             simulador académico
+  certificaciones/       listado + [id] detalle personalizado
   impacto/
   api/ai/explain/        explicación generada por IA
-  api/ai/goal/           guía de meta generada por IA
 src/components/          OcrCourseImporter, OpportunityCard, Sidebar, AppShell,
                          StatusBadge, SetupProgress, ProfileRefinementFields,
-                         AiOpportunityGuide, GoalGuide, icons
+                         AiOpportunityGuide, InfoTooltip, icons
 src/data/                types.ts, opportunities.ts, opportunity-rules.ts,
                          academic-period.ts, demo-profile.ts
 src/lib/                 matching.ts, store.ts

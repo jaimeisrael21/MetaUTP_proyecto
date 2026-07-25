@@ -9,6 +9,7 @@ import { InfoTooltip } from "@/components/InfoTooltip";
 import {
   AlertIcon,
   AwardIcon,
+  CheckCircleIcon,
   ChevronLeftIcon,
   ExternalLinkIcon,
 } from "@/components/icons";
@@ -151,6 +152,53 @@ export default function CertificacionDetailPage() {
           </p>
         </div>
 
+        <section className="mt-8 rounded-3xl border border-border bg-white p-6 shadow-sm md:p-7">
+          <div className="flex items-center gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#f1e8ff] text-[#6f2ba8]">
+              <AwardIcon width={20} height={20} />
+            </span>
+            <h2 className="text-xl font-bold text-canvas-foreground">
+              Qué es y cómo puede ayudarte
+            </h2>
+          </div>
+          <div className="mt-5 grid gap-5 md:grid-cols-2">
+            <div>
+              <h3 className="text-sm font-bold uppercase tracking-wide text-canvas-foreground/50">
+                Qué es
+              </h3>
+              <p className="mt-2 text-sm leading-6 text-canvas-foreground/72">
+                {path.whatItIs}
+              </p>
+            </div>
+            <div>
+              <h3 className="text-sm font-bold uppercase tracking-wide text-canvas-foreground/50">
+                Cómo te beneficia
+              </h3>
+              <p className="mt-2 text-sm leading-6 text-canvas-foreground/72">
+                {path.whyItMatters}
+              </p>
+            </div>
+          </div>
+          <div className="mt-5 border-t border-border pt-5">
+            <h3 className="text-sm font-bold text-canvas-foreground">Usos prácticos</h3>
+            <ul className="mt-3 grid gap-2 md:grid-cols-3">
+              {path.practicalUses.map((use) => (
+                <li
+                  key={use}
+                  className="flex gap-2 rounded-xl bg-canvas-soft px-3.5 py-3 text-sm leading-5 text-canvas-foreground/70"
+                >
+                  <CheckCircleIcon
+                    width={16}
+                    height={16}
+                    className="mt-0.5 shrink-0 text-status-met"
+                  />
+                  {use}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+
         <section className="mt-8">
           <div className="flex flex-wrap items-end justify-between gap-2">
             <h2 className="text-xl font-bold text-canvas-foreground">
@@ -196,15 +244,18 @@ export default function CertificacionDetailPage() {
               <AwardIcon width={20} height={20} />
             </span>
             <div>
-              <h2 className="text-xl font-bold text-canvas-foreground">Lo que debes saber sobre esta ruta</h2>
+              <h2 className="text-xl font-bold text-canvas-foreground">Datos clave de la certificación</h2>
               <p className="text-sm text-canvas-foreground/55">
-                Características, significado y alcance; no cuentan como requisitos.
+                Información descriptiva separada de los requisitos evaluables.
               </p>
             </div>
           </div>
           <ul className="mt-5 grid gap-3 md:grid-cols-2">
             {path.characteristics.map((item) => {
               const clarification = path.clarifications?.find((entry) => entry.label === item);
+              const clarificationSource = clarification
+                ? path.sources[clarification.sourceIndex ?? 0]
+                : undefined;
               return (
                 <li
                   key={item}
@@ -217,8 +268,8 @@ export default function CertificacionDetailPage() {
                       <>
                         <InfoTooltip
                           label={item}
-                          sourceLabel={path.sources[0]?.label}
-                          sourceUrl={path.sources[0]?.url}
+                          sourceLabel={clarificationSource?.label}
+                          sourceUrl={clarificationSource?.url}
                         >
                           <span className="block">{clarification.plainMeaning}</span>
                           <span className="mt-2 block text-sidebar-muted">
@@ -226,14 +277,14 @@ export default function CertificacionDetailPage() {
                           </span>
                           <span className="mt-2 block font-semibold text-amber-200">
                             {clarification.basis === "official"
-                              ? "Dato publicado por UTP."
+                              ? "Dato respaldado por la fuente enlazada."
                               : clarification.basis === "orientative"
                                 ? "Interpretación orientativa; alcance oficial por confirmar."
                                 : "Confirmación institucional pendiente."}
                           </span>
                         </InfoTooltip>
                         <span className={`mt-2 block w-fit rounded-full px-2.5 py-1 text-[11px] font-bold ${clarification.basis === "official" ? "bg-status-met-soft text-status-met" : clarification.basis === "orientative" ? "bg-status-info-soft text-status-info" : "bg-status-pending-soft text-status-pending"}`}>
-                          {clarification.basis === "official" ? "Característica confirmada" : clarification.basis === "orientative" ? "Explicación orientativa" : "Por confirmar con UTP"}
+                          {clarification.basis === "official" ? "Información oficial" : clarification.basis === "orientative" ? "Explicación orientativa" : "Pendiente de confirmar"}
                         </span>
                       </>
                     )}

@@ -11,6 +11,7 @@ import {
   CompassIcon,
   HelpCircleIcon,
   PencilIcon,
+  SearchIcon,
 } from "@/components/icons";
 import { OpportunityCard } from "@/components/OpportunityCard";
 import { CertificationOpportunityCard } from "@/components/CertificationOpportunityCard";
@@ -25,7 +26,12 @@ import {
   rankCertification,
   type CertificationEvaluation,
 } from "@/lib/certification-matching";
-import { evaluateOpportunity, isPersonalizedOpportunityVisible, rankOpportunity } from "@/lib/matching";
+import {
+  evaluateOpportunity,
+  isPersonalizedOpportunityVisible,
+  isRelevantClosedOpportunity,
+  rankOpportunity,
+} from "@/lib/matching";
 import { useProfile, useSession } from "@/lib/store";
 
 type CatalogCategory = OpportunityCategory | "Todas" | "Certificaciones";
@@ -57,12 +63,27 @@ const CATEGORIES: CatalogCategory[] = [
 ];
 const PAGE_SIZE = 4;
 
+function normalizedSearch(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+function includesSearch(values: Array<string | undefined>, query: string) {
+  if (!query) return true;
+  return normalizedSearch(values.filter(Boolean).join(" ")).includes(query);
+}
+
 export default function OportunidadesPage() {
   const router = useRouter();
   const { session, hydrated: sessionHydrated } = useSession();
   const { profile, hydrated: profileHydrated } = useProfile();
   const [category, setCategory] = useState<(typeof CATEGORIES)[number]>("Todas");
   const [page, setPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState("");
+  const normalizedQuery = normalizedSearch(searchQuery);
 
   useEffect(() => {
     if (!sessionHydrated || !profileHydrated) return;
@@ -104,13 +125,18 @@ export default function OportunidadesPage() {
     return evaluatedAll
       .filter(
         ({ opportunity, evaluation }) =>
-          opportunity.category === category && evaluation.window.status === "closed"
+          opportunity.category === category &&
+          isRelevantClosedOpportunity(evaluation) &&
+          includesSearch(
+            [opportunity.title, opportunity.shortDescription, opportunity.category],
+            normalizedQuery
+          )
       )
       .sort((first, second) =>
         (second.opportunity.windowEnd ?? "").localeCompare(first.opportunity.windowEnd ?? "")
       )
       .slice(0, 4);
-  }, [category, evaluatedAll]);
+  }, [category, evaluatedAll, normalizedQuery]);
 
   const personalizedCertifications = useMemo(
     () =>
@@ -124,25 +150,43 @@ export default function OportunidadesPage() {
     const opportunityItems: CatalogItem[] = category === "Certificaciones"
       ? []
       : personalized
-          .filter(({ opportunity }) => category === "Todas" || opportunity.category === category)
+          .filter(
+            ({ opportunity }) =>
+              (category === "Todas" || opportunity.category === category) &&
+              includesSearch(
+                [
+                  opportunity.title,
+                  opportunity.shortDescription,
+                  opportunity.category,
+                ],
+                normalizedQuery
+              )
+          )
           .map((item) => ({
             kind: "opportunity" as const,
             ...item,
             score: item.ranking.score,
           }));
     const certificationItems: CatalogItem[] = category === "Todas" || category === "Certificaciones"
-      ? personalizedCertifications.map(({ path, evaluation }, index) => ({
-          kind: "certification" as const,
-          path,
-          evaluation,
-          catalogIndex: opportunities.length + index,
-          score: rankCertification(path, evaluation, profile),
-        }))
+      ? personalizedCertifications
+          .filter(({ path }) =>
+            includesSearch(
+              [path.title, path.summary, path.issuer, path.whatItIs],
+              normalizedQuery
+            )
+          )
+          .map(({ path, evaluation }, index) => ({
+            kind: "certification" as const,
+            path,
+            evaluation,
+            catalogIndex: opportunities.length + index,
+            score: rankCertification(path, evaluation, profile),
+          }))
       : [];
     return [...opportunityItems, ...certificationItems].sort(
       (first, second) => second.score - first.score || first.catalogIndex - second.catalogIndex
     );
-  }, [category, personalized, personalizedCertifications, profile]);
+  }, [category, normalizedQuery, personalized, personalizedCertifications, profile]);
 
   const totalPages = Math.max(1, Math.ceil(orderedCatalog.length / PAGE_SIZE));
   const pageItems = orderedCatalog.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -167,6 +211,11 @@ export default function OportunidadesPage() {
 
   function chooseCategory(next: CatalogCategory) {
     setCategory(next);
+    setPage(1);
+  }
+
+  function updateSearch(value: string) {
+    setSearchQuery(value);
     setPage(1);
   }
 
@@ -260,6 +309,23 @@ export default function OportunidadesPage() {
             </div>
           </div>
 
+          <label className="relative mt-4 block max-w-xl" htmlFor="opportunity-search">
+            <span className="sr-only">Buscar oportunidades</span>
+            <SearchIcon
+              width={18}
+              height={18}
+              className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-canvas-foreground/42"
+            />
+            <input
+              id="opportunity-search"
+              type="search"
+              value={searchQuery}
+              onChange={(event) => updateSearch(event.target.value)}
+              placeholder="Buscar por nombre, entidad o tema"
+              className="field-control mt-0 pl-11"
+            />
+          </label>
+
           <div className="opportunity-grid mt-4" aria-live="polite">
             {pageItems.map((item, index) => item.kind === "opportunity" ? (
               <OpportunityCard
@@ -294,31 +360,6 @@ export default function OportunidadesPage() {
             </div>
           )}
 
-          {closedReferences.length > 0 && (
-            <section className="mt-9" aria-labelledby="closed-reference-title">
-              <div>
-                <p className="eyebrow">Para anticiparte</p>
-                <h3 id="closed-reference-title" className="mt-1 text-xl font-bold text-canvas-foreground">
-                  Cerradas recientemente
-                </h3>
-                <p className="mt-1 max-w-3xl text-sm leading-6 text-canvas-foreground/60">
-                  No están disponibles para postular hoy. Se conservan como referencia y sus próximas fechas deben confirmarse en la fuente oficial.
-                </p>
-              </div>
-              <div className="opportunity-grid mt-4">
-                {closedReferences.map(({ opportunity, evaluation, ranking }, index) => (
-                  <OpportunityCard
-                    key={opportunity.id}
-                    opportunity={opportunity}
-                    evaluation={evaluation}
-                    rankingReason={ranking.reason}
-                    animationIndex={index}
-                  />
-                ))}
-              </div>
-            </section>
-          )}
-
           {totalPages > 1 && (
             <nav className="catalog-pagination" aria-label="Páginas de oportunidades">
               <button type="button" disabled={page === 1} onClick={() => setPage(page - 1)} className="pagination-button" aria-label="Página anterior">
@@ -333,6 +374,31 @@ export default function OportunidadesPage() {
                 <ChevronLeftIcon className="rotate-180" width={18} height={18} />
               </button>
             </nav>
+          )}
+
+          {closedReferences.length > 0 && (
+            <section className="mt-9 border-t border-border pt-8" aria-labelledby="closed-reference-title">
+              <div>
+                <p className="eyebrow">Para anticiparte</p>
+                <h3 id="closed-reference-title" className="mt-1 text-xl font-bold text-canvas-foreground">
+                  Convocatorias relacionadas contigo que cerraron recientemente
+                </h3>
+                <p className="mt-1 max-w-3xl text-sm leading-6 text-canvas-foreground/60">
+                  Solo aparecen cuando tus datos confirman la condición personal asociada. No están disponibles para postular hoy y una nueva edición debe verificarse en la fuente oficial.
+                </p>
+              </div>
+              <div className="opportunity-grid mt-4">
+                {closedReferences.map(({ opportunity, evaluation, ranking }, index) => (
+                  <OpportunityCard
+                    key={opportunity.id}
+                    opportunity={opportunity}
+                    evaluation={evaluation}
+                    rankingReason={ranking.reason}
+                    animationIndex={index}
+                  />
+                ))}
+              </div>
+            </section>
           )}
         </section>
       </div>
