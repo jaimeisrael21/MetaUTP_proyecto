@@ -43,6 +43,15 @@ export function HelpCircleIcon(props: IconProps) {
   );
 }
 
+export function SearchIcon(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <circle cx="11" cy="11" r="6.5" />
+      <path d="m16 16 4 4" />
+    </svg>
+  );
+}
+
 export function XCircleIcon(props: IconProps) {
   return (
     <svg {...base} {...props}>
@@ -87,16 +96,6 @@ export function AwardIcon(props: IconProps) {
       <circle cx="12" cy="9" r="5" />
       <path d="m8.5 13-1 8 4.5-2.5 4.5 2.5-1-8" />
       <path d="m10 9 1.3 1.3L14 7.8" />
-    </svg>
-  );
-}
-
-export function RouteIcon(props: IconProps) {
-  return (
-    <svg {...base} {...props}>
-      <circle cx="6" cy="18" r="2" />
-      <circle cx="18" cy="6" r="2" />
-      <path d="M8 18h3a3 3 0 0 0 3-3V9a3 3 0 0 1 3-3h1" />
     </svg>
   );
 }

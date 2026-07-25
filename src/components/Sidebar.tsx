@@ -7,7 +7,6 @@ import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import {
   CompassIcon,
   LogOutIcon,
-  RouteIcon,
   SettingsIcon,
   UserIcon,
 } from "./icons";
@@ -18,7 +17,6 @@ import {
 // nunca llegaba a verla. No reordenar esto de vuelta.
 const NAV_ITEMS = [
   { href: "/oportunidades", label: "Oportunidades", icon: CompassIcon },
-  { href: "/simulador", label: "Mi ruta", icon: RouteIcon },
 ];
 
 export function Sidebar() {

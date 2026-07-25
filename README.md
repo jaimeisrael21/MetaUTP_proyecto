@@ -1,6 +1,6 @@
 # MetaUTP
 
-MetaUTP es un orientador independiente para estudiantes de la UTP. Conserva un catálogo de 37 oportunidades documentadas y compara sus requisitos con los datos que el estudiante decide registrar.
+MetaUTP es un orientador independiente para estudiantes de la UTP. Conserva un catálogo de 38 oportunidades institucionales y 9 rutas de certificación documentadas, y compara sus requisitos con los datos que el estudiante decide registrar.
 
 El producto separa tres responsabilidades:
 
@@ -11,11 +11,11 @@ El producto separa tres responsabilidades:
 ## Experiencia principal
 
 - Catálogo completo con categorías y filtros de vigencia.
-- Botón opcional **Jerarquizar oportunidades**. Ordena las mismas 37; nunca oculta ni reemplaza el catálogo.
+- Orden personalizado por reglas determinísticas, con búsqueda, categorías y paginación.
 - Motivo visible para cada puesto del orden personal.
 - Estados diferenciados: cumple, está cerca, falta un dato, validación oficial y no cumple aún.
 - Carga manual de cursos u OCR en el navegador con revisión humana antes de guardar.
-- Simuladores académicos y detalle con fuente, fecha de revisión y siguiente acción.
+- Detalle de cada oportunidad con fuente, fecha de revisión y siguiente acción.
 - Explicación con IA bajo demanda, con respuesta determinística de respaldo si el proveedor falla.
 - Diseño web responsive; no requiere una aplicación móvil nativa para la exposición.
 

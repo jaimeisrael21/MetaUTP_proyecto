@@ -50,6 +50,9 @@ export async function POST(request: NextRequest) {
         category: "Certificaciones",
         actionNote: certification!.nextStep,
         source: certification!.sources.map((source) => source.label).join("; "),
+        whatItIs: certification!.whatItIs,
+        whyItMatters: certification!.whyItMatters,
+        practicalUses: certification!.practicalUses,
         clarifications: certification!.clarifications ?? [],
       };
   const firstClarification = certification?.clarifications?.[0];
@@ -57,16 +60,18 @@ export async function POST(request: NextRequest) {
     subject.title,
     parsed.data.signals,
     subject.actionNote,
-    firstClarification
-      ? `${firstClarification.label}: ${firstClarification.plainMeaning}`
-      : undefined
+    certification
+      ? `${certification.whatItIs} ${certification.whyItMatters}`
+      : firstClarification
+        ? `${firstClarification.label}: ${firstClarification.plainMeaning}`
+        : undefined
   );
   try {
     const result = await generateText({
       model: process.env.AI_GATEWAY_MODEL?.replace(/^\uFEFF/, "").trim() || "alibaba/qwen3.5-flash",
       abortSignal: AbortSignal.timeout(12_000), maxRetries: 0, temperature: 0, maxOutputTokens: 420,
       providerOptions: { alibaba: { enableThinking: false }, gateway: { tags: ["feature:opportunity-explanation", "app:metautp"] } },
-      system: "Eres el asistente explicativo de MetaUTP. Responde en español peruano claro. No inventes requisitos, fechas, probabilidades ni beneficios. No afirmes admisión. Los estados recibidos ya fueron calculados por reglas y son tu única base. En certificaciones puedes explicar utilidad usando únicamente las aclaraciones proporcionadas; conserva su carácter oficial, orientativo o pendiente y nunca conviertas una interpretación en definición oficial. Cuando falte confirmación, recomienda consultar al SAE; escribe exactamente 'el SAE' y no expandas ni redefinas el acrónimo. Devuelve solo JSON válido.",
+      system: "Eres el asistente explicativo de MetaUTP. Responde en español peruano claro. No inventes requisitos, fechas, probabilidades ni beneficios. No afirmes admisión ni garantices empleo. Los estados recibidos ya fueron calculados por reglas y son tu única base. En certificaciones explica qué es, cómo puede ayudar y sus usos prácticos usando únicamente los campos y aclaraciones proporcionados; conserva su carácter oficial, orientativo o pendiente y nunca conviertas una interpretación en definición oficial. Cuando falte confirmación, recomienda consultar al SAE; escribe exactamente 'el SAE' y no expandas ni redefinas el acrónimo. Devuelve solo JSON válido.",
       prompt: `Devuelve {"summary":"texto","nextSteps":["texto"],"caveat":"texto"}, con 1 a 3 pasos. Contexto no sensible: ${JSON.stringify({ opportunity: { ...subject, window: parsed.data.windowLabel }, result: parsed.data.signals })}`,
     });
     return Response.json({ ...parseExplanation(result.text), mode: "ai" as const });

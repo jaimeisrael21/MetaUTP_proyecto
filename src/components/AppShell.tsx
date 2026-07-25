@@ -3,11 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Sidebar } from "./Sidebar";
-import { CompassIcon, RouteIcon, SettingsIcon } from "./icons";
+import { CompassIcon, SettingsIcon } from "./icons";
 
 const MOBILE_NAV = [
   { href: "/oportunidades", label: "Oportunidades", icon: CompassIcon },
-  { href: "/simulador", label: "Mi ruta", icon: RouteIcon },
   { href: "/configuracion", label: "Configuración", icon: SettingsIcon },
 ];
 

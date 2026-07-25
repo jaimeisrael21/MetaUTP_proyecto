@@ -374,6 +374,18 @@ export function isPersonalizedOpportunityVisible(
   return true;
 }
 
+/**
+ * Una convocatoria cerrada solo se muestra como antecedente cuando el perfil
+ * confirma sus condiciones contextuales y no contradice una condición esencial.
+ * Así no se exponen becas sensibles solo porque existan en el catálogo.
+ */
+export function isRelevantClosedOpportunity(evaluation: OpportunityEvaluation) {
+  if (evaluation.window.status !== "closed") return false;
+  if (evaluation.contextualUnknownCount > 0) return false;
+  if (evaluation.essentialUnmetCount > 0) return false;
+  return true;
+}
+
 export interface RankingInfo {
   score: number;
   reason: string;

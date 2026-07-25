@@ -205,7 +205,7 @@ export interface StudentProfile {
   academicPeriod: string;
   academicMetrics: AcademicMetrics;
   dataProvenance: DataProvenance;
-  courses: Course[]; // cursos del ciclo actual, para los simuladores
+  courses: Course[]; // cursos del ciclo actual, usados para comparar requisitos
   preferredCategories: OpportunityCategory[]; // intereses opcionales usados solo para jerarquizar
   facts: ProfileFacts; // datos opcionales declarados de forma respetuosa por el estudiante
   goal: StudentGoal; // meta principal que orienta el orden del catálogo y a la guía de IA
