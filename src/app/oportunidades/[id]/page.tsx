@@ -14,7 +14,7 @@ import {
   AlertIcon,
   ChevronLeftIcon,
   ExternalLinkIcon,
-  SlidersIcon,
+  RouteIcon,
 } from "@/components/icons";
 
 function formatDate(iso: string) {
@@ -61,12 +61,6 @@ export default function OportunidadDetailPage() {
   const match = MATCH_LABEL[evaluation.matchState];
   const totalSignals = evaluation.comparisonTotal;
   const confirmedSignals = evaluation.confirmedCount;
-  const hasCloseNumeric = evaluation.evaluations.some(
-    (item) =>
-      item.status === "close" &&
-      item.requirement.type !== "boolean" &&
-      item.requirement.type !== "non_verifiable"
-  );
 
   return (
     <AppShell>
@@ -133,16 +127,16 @@ export default function OportunidadDetailPage() {
           </div>
         )}
 
-        {hasCloseNumeric && (
+        {!informational && (
           <Link
             href={`/simulador?oportunidad=${opportunity.id}`}
             className="mt-6 flex items-center justify-between gap-3 rounded-2xl bg-sidebar px-5 py-4 text-sidebar-foreground transition-opacity hover:opacity-90"
           >
             <span className="flex items-center gap-3 text-sm font-medium">
-              <SlidersIcon width={18} height={18} />
-              Estás cerca: simula qué curso puede mejorar tu resultado
+              <RouteIcon width={18} height={18} />
+              Convierte estos requisitos en una ruta de próximos pasos
             </span>
-            <span className="text-sm font-semibold text-primary">Simular →</span>
+            <span className="text-sm font-semibold text-primary">Crear mi ruta →</span>
           </Link>
         )}
 

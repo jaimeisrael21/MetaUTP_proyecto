@@ -13,6 +13,7 @@ import {
   PencilIcon,
 } from "@/components/icons";
 import { OpportunityCard } from "@/components/OpportunityCard";
+import { CatalogPeriodNotice } from "@/components/CatalogPeriodNotice";
 import { CURRENT_ACADEMIC_PERIOD } from "@/data/academic-period";
 import { opportunities } from "@/data/opportunities";
 import type { OpportunityCategory } from "@/data/types";
@@ -117,9 +118,11 @@ export default function OportunidadesPage() {
             title={`Verificado el ${CURRENT_ACADEMIC_PERIOD.verifiedAt}. ${CURRENT_ACADEMIC_PERIOD.source}`}
           >
             <span aria-hidden="true" className="academic-period__dot" />
-            {CURRENT_ACADEMIC_PERIOD.label} · Semana {CURRENT_ACADEMIC_PERIOD.week}
+            {CURRENT_ACADEMIC_PERIOD.label} · {CURRENT_ACADEMIC_PERIOD.stage}
           </span>
         </header>
+
+        <div className="mt-5"><CatalogPeriodNotice compact /></div>
 
         <section className="summary-grid mt-6" aria-label="Resumen de oportunidades según tu perfil">
           <article className="metric-card metric-card--met">

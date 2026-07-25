@@ -5,9 +5,10 @@ import { usePathname, useRouter } from "next/navigation";
 import { clearProfile, useSession } from "@/lib/store";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import {
+  AwardIcon,
   CompassIcon,
   LogOutIcon,
-  SlidersIcon,
+  RouteIcon,
   SettingsIcon,
   UserIcon,
 } from "./icons";
@@ -18,7 +19,8 @@ import {
 // nunca llegaba a verla. No reordenar esto de vuelta.
 const NAV_ITEMS = [
   { href: "/oportunidades", label: "Oportunidades", icon: CompassIcon },
-  { href: "/simulador", label: "Plan de mejora", icon: SlidersIcon },
+  { href: "/simulador", label: "Mi ruta", icon: RouteIcon },
+  { href: "/certificaciones", label: "Certificaciones", icon: AwardIcon },
 ];
 
 export function Sidebar() {
@@ -58,7 +60,9 @@ export function Sidebar() {
               className={`group flex items-center gap-3 rounded-xl px-3.5 py-3 text-[15px] font-semibold transition-all duration-200 ${
                 active
                   ? "bg-primary text-primary-foreground shadow-[0_10px_24px_rgba(197,31,70,0.2)]"
-                  : "text-sidebar-muted hover:translate-x-0.5 hover:bg-sidebar-soft hover:text-sidebar-foreground"
+                  : item.href === "/oportunidades"
+                    ? "text-sidebar-muted hover:translate-x-0.5 hover:bg-amber-300/15 hover:text-amber-300 hover:shadow-[0_0_22px_rgba(252,211,77,0.12)]"
+                    : "text-sidebar-muted hover:translate-x-0.5 hover:bg-sidebar-soft hover:text-sidebar-foreground"
               }`}
             >
               <Icon width={18} height={18} />

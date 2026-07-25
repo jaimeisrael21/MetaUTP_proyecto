@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { ArrowRightIcon, ShieldIcon } from "@/components/icons";
 import { SetupProgress } from "@/components/SetupProgress";
+import { InfoTooltip } from "@/components/InfoTooltip";
 import type { ProfileFacts, SpecialAffiliation, TriState } from "@/data/types";
 import { useProfile, useSession } from "@/lib/store";
 
@@ -75,7 +76,26 @@ export default function PersonalizarPage() {
             <h2 className="text-lg font-bold">2. Periodo anterior</h2>
             <div className="mt-4 grid gap-4">
               <TriField label="¿Desaprobaste algún curso?" value={facts.failedLastPeriod} onChange={(value) => patch({ failedLastPeriod: value })} />
-              <label><span className="field-label">Posición académica oficial</span><select value={facts.academicRank} onChange={(event) => patch({ academicRank: event.target.value as ProfileFacts["academicRank"] })} className="field-control cursor-pointer"><option value="unknown">No la conozco</option><option value="top_tenth">Décimo superior</option><option value="top_fifth">Quinto superior</option><option value="top_third">Tercio superior</option><option value="none">Ninguna de estas</option></select><span className="field-help">Solo declárala si figura en una constancia oficial.</span></label>
+              <div>
+                <span className="field-label flex items-start">
+                  <label htmlFor="academic-rank">Posición académica oficial</label>
+                  <InfoTooltip
+                    label="posición académica oficial"
+                    sourceLabel="Reglamento de Estudios de Pregrado UTP V16"
+                    sourceUrl="https://www.utp.edu.pe/web/sites/default/files/2026-06/Reglamento-de-Estudios-de-Pregrado-v16-PT.pdf"
+                  >
+                    La UTP calcula el orden de mérito comparando el promedio del periodo con estudiantes de la misma carrera. MetaUTP no puede deducir tercio, quinto o décimo superior solo con tus notas.
+                  </InfoTooltip>
+                </span>
+                <select id="academic-rank" value={facts.academicRank} onChange={(event) => patch({ academicRank: event.target.value as ProfileFacts["academicRank"] })} className="field-control cursor-pointer">
+                  <option value="unknown">No la conozco</option>
+                  <option value="top_tenth">Décimo superior</option>
+                  <option value="top_fifth">Quinto superior</option>
+                  <option value="top_third">Tercio superior</option>
+                  <option value="none">Ninguna de estas</option>
+                </select>
+                <span className="field-help">Elige una posición solo si aparece en una constancia oficial. Si no la conoces, las oportunidades relacionadas quedarán pendientes de confirmar.</span>
+              </div>
             </div>
           </section>
 

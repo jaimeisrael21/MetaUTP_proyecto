@@ -71,6 +71,22 @@ const no = (id: string, label: string, field: TriStateField): ProfileGate => ({
   expected: "no",
 });
 
+// El Reglamento de Becas de Pregrado V18 establece estas dos condiciones
+// generales para toda modalidad de beca. Se agregan como reglas compartidas
+// para que una sanción o deuda declarada no siga mostrando becas incompatibles.
+const GENERAL_SCHOLARSHIP_GATES: ProfileGate[] = [
+  no(
+    "scholarship-no-prior-debt",
+    "No tener deuda del periodo lectivo anterior frente a la UTP",
+    "outstandingDebt"
+  ),
+  no(
+    "scholarship-no-disciplinary-sanction",
+    "No tener sanción disciplinaria vigente ni en el periodo anterior",
+    "disciplinaryIssues"
+  ),
+];
+
 const OPPORTUNITY_GATES: Record<string, ProfileGate[]> = {
   "beca-cultura": [
     yes("cultural-ensemble", "Integrar un elenco cultural UTP", "culturalEnsemble"),
@@ -238,7 +254,9 @@ export interface GateEvaluation {
 }
 
 export function opportunityGates(opportunity: Opportunity): ProfileGate[] {
-  return OPPORTUNITY_GATES[opportunity.id] ?? [];
+  const specific = OPPORTUNITY_GATES[opportunity.id] ?? [];
+  if (opportunity.category !== "Becas") return specific;
+  return [...specific, ...GENERAL_SCHOLARSHIP_GATES];
 }
 
 export function evaluateProfileGate(gate: ProfileGate, profile: StudentProfile): GateResult {
@@ -249,7 +267,10 @@ export function evaluateProfileGate(gate: ProfileGate, profile: StudentProfile):
       return value === gate.expected ? "met" : "unmet";
     }
     case "academic_rank":
-      if (gate.id === "rank-mobility" || gate.id === "rank-virtual") {
+      // La movilidad presencial admite también el umbral de promedio que
+      // figura en su convocatoria. La movilidad virtual sí exige posición
+      // académica oficial: no debe inferirse comparando solo las notas propias.
+      if (gate.id === "rank-mobility") {
         if (gate.allowed.includes(profile.facts.academicRank)) return "met";
         if ((profile.academicMetrics.lastTwoPeriodsGpa ?? 0) >= 14) return "met";
       }
@@ -279,8 +300,6 @@ export function evaluateOpportunityGates(
 }
 
 const CONTEXTUAL_TRI_STATE_FIELDS = new Set<TriStateField>([
-  "disciplinaryIssues",
-  "outstandingDebt",
   "competitiveSport",
   "representsUtp",
   "eliteAthleteCredential",

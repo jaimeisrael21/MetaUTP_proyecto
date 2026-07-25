@@ -2,20 +2,85 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { CheckCircleIcon, PencilIcon, ScanTextIcon, ShieldIcon } from "@/components/icons";
+import { InfoTooltip } from "@/components/InfoTooltip";
 import type { ProfileFacts, TriState } from "@/data/types";
 import { useProfile, useSession } from "@/lib/store";
 
 const options: { value: TriState; label: string }[] = [
-  { value: "unknown", label: "Prefiero no indicarlo" },
+  { value: "unknown", label: "No lo sé / prefiero no indicarlo" },
   { value: "yes", label: "Sí" },
   { value: "no", label: "No" },
 ];
 
-function ContextField({ label, value, onChange }: { label: string; value: TriState; onChange: (value: TriState) => void }) {
-  return <label><span className="field-label">{label}</span><select value={value} onChange={(event) => onChange(event.target.value as TriState)} className="field-control cursor-pointer">{options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>;
+interface ContextHelp {
+  text: string;
+  sourceLabel: string;
+  sourceUrl: string;
+}
+
+const OFFICIAL_HELP: Record<string, ContextHelp> = {
+  athlete: {
+    text: "DC significa Deportista Calificado y DCAN/DECAN, Deportista Calificado de Alto Nivel. La acreditación vigente la emite el IPD; MetaUTP solo registra tu respuesta y la UTP realiza la validación final.",
+    sourceLabel: "Reglamento PRODAC UTP V4",
+    sourceUrl: "https://www.utp.edu.pe/web/sites/default/files/2026-01/Reglamento-Deportes-Alta-Competencia-Deportiva-PRODAC-v04%20-PT.pdf",
+  },
+  research: {
+    text: "Se refiere a participar actualmente en un semillero o grupo estudiantil de investigación reconocido por la UTP. Una actividad externa deberá ser revisada por el área responsable antes de considerarse equivalente.",
+    sourceLabel: "Reglamento de grupos estudiantiles de investigación UTP",
+    sourceUrl: "https://www.utp.edu.pe/web/sites/default/files/transparencia/INV-RG006-REGLAMENTO-PARA-GRUPOS-ESTUDIANTILES-DE-INVESTIGACION-v1-PT.pdf",
+  },
+  discipline: {
+    text: "Para las becas UTP se revisa que el postulante no tenga sanciones disciplinarias durante la evaluación ni en el periodo académico anterior.",
+    sourceLabel: "Reglamento de Becas de Pregrado UTP V18",
+    sourceUrl: "https://www.utp.edu.pe/web/sites/default/files/2026-06/Reglamento_de_Becas_de_Pregrado_V18_PT.pdf",
+  },
+  debt: {
+    text: "Para las becas UTP se exige no mantener deuda del periodo lectivo anterior frente a la universidad. MetaUTP no consulta tu estado de cuenta: tú declaras el dato y la UTP lo valida.",
+    sourceLabel: "Reglamento de Becas de Pregrado UTP V18",
+    sourceUrl: "https://www.utp.edu.pe/web/sites/default/files/2026-06/Reglamento_de_Becas_de_Pregrado_V18_PT.pdf",
+  },
+  conadis: {
+    text: "CONADIS es el Consejo Nacional para la Integración de la Persona con Discapacidad. Esta respuesta se usa cuando una oportunidad exige resolución o carné vigente; la entidad responsable confirma los documentos.",
+    sourceLabel: "CONADIS — plataforma oficial del Estado",
+    sourceUrl: "https://www.gob.pe/conadis",
+  },
+  regional: {
+    text: "La Beca Madrediosense exige haber nacido en Madre de Dios y pertenecer como asociado hábil a la Asociación de Estudiantes Madrediosenses. No basta solo con residir en la región.",
+    sourceLabel: "Reglamento de Becas de Pregrado UTP V18",
+    sourceUrl: "https://www.utp.edu.pe/web/sites/default/files/2026-06/Reglamento_de_Becas_de_Pregrado_V18_PT.pdf",
+  },
+};
+
+function ContextField({
+  label,
+  value,
+  onChange,
+  help,
+}: {
+  label: string;
+  value: TriState;
+  onChange: (value: TriState) => void;
+  help?: ContextHelp;
+}) {
+  const controlId = useId();
+  return (
+    <div>
+      <span className="field-label flex items-start">
+        <label htmlFor={controlId}>{label}</label>
+        {help && (
+          <InfoTooltip label={label} sourceLabel={help.sourceLabel} sourceUrl={help.sourceUrl}>
+            {help.text}
+          </InfoTooltip>
+        )}
+      </span>
+      <select id={controlId} value={value} onChange={(event) => onChange(event.target.value as TriState)} className="field-control cursor-pointer">
+        {options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+      </select>
+    </div>
+  );
 }
 
 export default function ConfiguracionPage() {
@@ -95,9 +160,9 @@ export default function ConfiguracionPage() {
             <div className="mt-5 grid gap-4 sm:grid-cols-2">
               <ContextField label="¿Practicas deporte competitivo?" value={facts.competitiveSport} onChange={(value) => patch({ competitiveSport: value })} />
               <ContextField label="¿Representas a la UTP en deporte o cultura?" value={facts.representsUtp} onChange={(value) => patch({ representsUtp: value })} />
-              <ContextField label="¿Tienes acreditación deportiva DC o DECAN?" value={facts.eliteAthleteCredential} onChange={(value) => patch({ eliteAthleteCredential: value })} />
+              <ContextField label="¿Cuentas con una acreditación vigente del IPD como DC o DCAN/DECAN?" help={OFFICIAL_HELP.athlete} value={facts.eliteAthleteCredential} onChange={(value) => patch({ eliteAthleteCredential: value })} />
               <ContextField label="¿Integras un elenco cultural UTP?" value={facts.culturalEnsemble} onChange={(value) => patch({ culturalEnsemble: value })} />
-              <ContextField label="¿Participas en investigación?" value={facts.researchExperience} onChange={(value) => patch({ researchExperience: value })} />
+              <ContextField label="¿Participas en un semillero o grupo de investigación reconocido por la UTP?" help={OFFICIAL_HELP.research} value={facts.researchExperience} onChange={(value) => patch({ researchExperience: value })} />
               <ContextField label="¿Realizas voluntariado?" value={facts.volunteering} onChange={(value) => patch({ volunteering: value })} />
             </div>
           </details>
@@ -105,8 +170,8 @@ export default function ConfiguracionPage() {
           <details className="refinement-section mt-3">
             <summary>Validaciones administrativas</summary>
             <div className="mt-5 grid gap-4 sm:grid-cols-2">
-              <ContextField label="¿Tienes una sanción disciplinaria vigente?" value={facts.disciplinaryIssues} onChange={(value) => patch({ disciplinaryIssues: value })} />
-              <ContextField label="¿Tienes obligaciones administrativas o financieras pendientes?" value={facts.outstandingDebt} onChange={(value) => patch({ outstandingDebt: value })} />
+              <ContextField label="¿Tienes una sanción disciplinaria vigente o recibiste una en el periodo anterior?" help={OFFICIAL_HELP.discipline} value={facts.disciplinaryIssues} onChange={(value) => patch({ disciplinaryIssues: value })} />
+              <ContextField label="¿Mantienes una deuda del periodo lectivo anterior frente a la UTP?" help={OFFICIAL_HELP.debt} value={facts.outstandingDebt} onChange={(value) => patch({ outstandingDebt: value })} />
             </div>
           </details>
 
@@ -117,7 +182,7 @@ export default function ConfiguracionPage() {
               <button type="button" onClick={() => patch({ sensitiveConsent: "yes" })} className={`choice-chip ${facts.sensitiveConsent === "yes" ? "choice-chip--active" : ""}`}>Sí, quiero considerarlas</button>
               <button type="button" onClick={omitSensitiveContext} className={`choice-chip ${facts.sensitiveConsent !== "yes" ? "choice-chip--active" : ""}`}>Ahora no</button>
             </div>
-            {facts.sensitiveConsent === "yes" && <div className="mt-5 grid gap-4 rounded-2xl border border-primary/15 bg-primary-soft/45 p-5 sm:grid-cols-2"><ContextField label="¿Deseas evaluar apoyos por necesidad económica?" value={facts.financialNeed} onChange={(value) => patch({ financialNeed: value })} /><ContextField label="¿Deseas evaluar apoyo por pérdida del responsable económico?" value={facts.lostEconomicGuardian} onChange={(value) => patch({ lostEconomicGuardian: value })} /><ContextField label="¿Deseas evaluar beneficios vinculados a CONADIS?" value={facts.disabilityConadis} onChange={(value) => patch({ disabilityConadis: value })} /><ContextField label="¿Deseas evaluar un beneficio regional?" value={facts.regionalBenefit} onChange={(value) => patch({ regionalBenefit: value })} /></div>}
+            {facts.sensitiveConsent === "yes" && <div className="mt-5 grid gap-4 rounded-2xl border border-primary/15 bg-primary-soft/45 p-5 sm:grid-cols-2"><ContextField label="¿Deseas evaluar apoyos por necesidad económica?" value={facts.financialNeed} onChange={(value) => patch({ financialNeed: value })} /><ContextField label="¿Deseas evaluar apoyo por pérdida del responsable económico?" value={facts.lostEconomicGuardian} onChange={(value) => patch({ lostEconomicGuardian: value })} /><ContextField label="¿Cuentas con resolución y carné CONADIS vigentes?" help={OFFICIAL_HELP.conadis} value={facts.disabilityConadis} onChange={(value) => patch({ disabilityConadis: value })} /><ContextField label="¿Naciste en Madre de Dios y eres asociado hábil de la asociación indicada por la beca?" help={OFFICIAL_HELP.regional} value={facts.regionalBenefit} onChange={(value) => patch({ regionalBenefit: value })} /></div>}
           </details>
 
           <button type="button" onClick={saveContext} className="primary-button mt-6 w-full">Guardar y actualizar oportunidades</button>

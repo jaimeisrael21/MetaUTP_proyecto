@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ArrowRightIcon, ChevronLeftIcon, ShieldIcon } from "@/components/icons";
+import { CatalogPeriodNotice } from "@/components/CatalogPeriodNotice";
 import { SetupProgress } from "@/components/SetupProgress";
 import { useProfile, useSession } from "@/lib/store";
 
@@ -67,6 +68,7 @@ export default function ConfigurarPage() {
         </div>
 
         {!editing && <div className="mt-8"><SetupProgress current={1} /></div>}
+        {!editing && <div className="mt-5"><CatalogPeriodNotice compact /></div>}
 
         <div className="mt-8 grid gap-8 lg:grid-cols-[0.82fr_1.18fr] lg:gap-14">
           <section className="pt-2 page-enter">

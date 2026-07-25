@@ -14,6 +14,7 @@ import {
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { loadProfileForAuthenticatedUser } from "@/lib/supabase/profile-sync";
 import { CompassIcon, GaugeIcon, ShieldIcon } from "@/components/icons";
+import { CatalogPeriodNotice } from "@/components/CatalogPeriodNotice";
 
 function friendlyAuthError(caught: unknown) {
   const code =
@@ -246,6 +247,8 @@ export default function LoginPage() {
               se procesa con autenticación segura de Supabase y no se guarda en el navegador.
             </p>
           </div>
+
+          {mode === "signup" && <div className="mt-4"><CatalogPeriodNotice compact /></div>}
 
           <form onSubmit={handleSubmit} className="mt-6 space-y-4">
             {mode === "signup" && (

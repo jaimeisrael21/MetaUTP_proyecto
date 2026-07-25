@@ -33,10 +33,11 @@ export const opportunities: Opportunity[] = [
       {
         id: "beca-cultura-req-3",
         description:
-          "Cumplir los requisitos académicos del periodo regular anterior y presentar el expediente completo dentro del cronograma, según el capítulo X del Reglamento de Becas de Pregrado.",
-        type: "non_verifiable",
-        nonVerifiableNote:
-          "Ni el artículo público ni el resumen del Reglamento revisado especifican un promedio ponderado mínimo exacto para esta beca; verifica el capítulo X del Reglamento de Becas de Pregrado completo en UTP+ Portal.",
+          "Promedio ponderado mínimo de 12 en el periodo lectivo regular anterior.",
+        type: "numeric_gpa",
+        threshold: 12,
+        comparator: ">=",
+        metric: "last_period_gpa",
       },
     ],
     windowStart: "2026-07-17",
