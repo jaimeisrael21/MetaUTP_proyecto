@@ -3,28 +3,27 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Sidebar } from "./Sidebar";
-import { BuildingIcon, CompassIcon, GaugeIcon, SlidersIcon } from "./icons";
+import { CompassIcon, RouteIcon, SettingsIcon } from "./icons";
 
 const MOBILE_NAV = [
   { href: "/oportunidades", label: "Oportunidades", icon: CompassIcon },
-  { href: "/panel", label: "Panel", icon: GaugeIcon },
-  { href: "/simulador", label: "Simulador", icon: SlidersIcon },
-  { href: "/impacto", label: "Impacto", icon: BuildingIcon },
+  { href: "/simulador", label: "Mi ruta", icon: RouteIcon },
+  { href: "/configuracion", label: "Configuración", icon: SettingsIcon },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   return (
-    <div className="flex min-h-screen w-full bg-canvas text-canvas-foreground">
+    <div className="flex min-h-screen w-full bg-transparent text-canvas-foreground">
       <Sidebar />
       <div className="flex min-h-screen flex-1 flex-col">
-        <header className="flex items-center justify-between border-b border-border bg-canvas px-4 py-3 md:hidden">
+        <header className="flex items-center justify-between border-b border-border bg-white/85 px-4 py-3 backdrop-blur md:hidden">
           <Link href="/oportunidades" className="flex items-center gap-2">
             <span className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-primary-foreground font-bold text-xs">
               M
             </span>
-            <span className="font-bold">MetaUTP</span>
+            <span className="font-bold">Meta<span className="text-primary">UTP</span></span>
           </Link>
         </header>
 

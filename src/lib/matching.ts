@@ -1,11 +1,25 @@
-// Lógica pura de cruce entre el perfil del estudiante y los requisitos reales
-// de cada oportunidad. Cero llamadas de red, cero datos inventados: todo se
-// calcula a partir de lo que el propio alumno ingresó y de los umbrales
-// reales guardados en data/opportunities.ts.
+// Motor determinístico de MetaUTP. La IA puede explicar o ayudar a extraer
+// datos, pero nunca decide si el alumno cumple un requisito numérico.
 
-import type { Opportunity, Requirement, StudentProfile } from "@/data/types";
+import type {
+  Opportunity,
+  OpportunityCategory,
+  Requirement,
+  StudentProfile,
+} from "@/data/types";
+import {
+  evaluateOpportunityGates,
+  gateRequiresContext,
+  goalRelevance,
+  type GateEvaluation,
+} from "@/data/opportunity-rules";
 
-export type RequirementStatus = "met" | "close" | "unmet" | "pending";
+export type RequirementStatus =
+  | "met"
+  | "close"
+  | "needs_info"
+  | "official"
+  | "unmet";
 
 export interface RequirementEvaluation {
   requirement: Requirement;
@@ -13,7 +27,7 @@ export interface RequirementEvaluation {
   detail: string;
 }
 
-export type WindowStatus = "active" | "upcoming" | "closed" | "ongoing";
+export type WindowStatus = "active" | "upcoming" | "closed" | "unconfirmed";
 
 export interface WindowInfo {
   status: WindowStatus;
@@ -25,6 +39,7 @@ export interface WindowInfo {
 const MARGIN: Record<string, number> = {
   numeric_gpa: 0.5,
   numeric_credits: 6,
+  numeric_hours: 2,
   numeric_cycle: 1,
 };
 
@@ -45,94 +60,405 @@ function compare(value: number, comparator: string, threshold: number): boolean 
   }
 }
 
-function profileValueFor(type: string, profile: StudentProfile): number | null {
-  if (type === "numeric_gpa") return profile.cumulativeGpa;
-  if (type === "numeric_credits") return profile.approvedCredits;
-  if (type === "numeric_cycle") return profile.cycle;
+function normalizedDescription(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
+function inferredMetric(requirement: Requirement) {
+  if (requirement.metric) return requirement.metric;
+  const description = normalizedDescription(requirement.description);
+
+  if (requirement.type === "numeric_cycle") return "cycle" as const;
+  if (requirement.type === "numeric_hours") {
+    return description.includes("anterior")
+      ? "weekly_hours_previous" as const
+      : "weekly_hours_current" as const;
+  }
+  if (requirement.type === "numeric_credits") {
+    if (description.includes("horas") && description.includes("anterior")) {
+      return "weekly_hours_previous" as const;
+    }
+    if (description.includes("horas")) return "weekly_hours_current" as const;
+    if (description.includes("matriculad") || description.includes("periodo actual")) {
+      return "current_period_credits" as const;
+    }
+    return "approved_credits" as const;
+  }
+  if (requirement.type === "numeric_gpa") {
+    if (description.includes("acumulad")) return "cumulative_gpa" as const;
+    if (description.includes("dos ciclos") || description.includes("2 ciclos")) {
+      return "last_two_periods_gpa" as const;
+    }
+    if (description.includes("ciclo actual")) return "current_cycle_gpa" as const;
+    return "last_period_gpa" as const;
+  }
   return null;
 }
 
+function profileValueFor(requirement: Requirement, profile: StudentProfile): number | null {
+  const metric = inferredMetric(requirement);
+  let value: number | null = null;
+  if (metric === "cycle") return profile.cycle;
+  if (metric === "cumulative_gpa") value = profile.cumulativeGpa;
+  if (metric === "approved_credits") value = profile.approvedCredits;
+  if (metric === "current_cycle_gpa") value = profile.academicMetrics.currentCycleGpa;
+  if (metric === "last_period_gpa") value = profile.academicMetrics.lastPeriodGpa;
+  if (metric === "last_two_periods_gpa") value = profile.academicMetrics.lastTwoPeriodsGpa;
+  if (metric === "current_period_credits") value = profile.academicMetrics.currentPeriodCredits;
+  if (metric === "weekly_hours_current") value = profile.academicMetrics.weeklyHoursCurrent;
+  if (metric === "weekly_hours_previous") value = profile.academicMetrics.weeklyHoursPrevious;
+  return value !== null && value > 0 ? value : null;
+}
+
 export function evaluateRequirement(
-  req: Requirement,
+  requirement: Requirement,
   profile: StudentProfile
 ): RequirementEvaluation {
   const isNumeric =
-    req.type === "numeric_gpa" || req.type === "numeric_credits" || req.type === "numeric_cycle";
+    requirement.type === "numeric_gpa" ||
+    requirement.type === "numeric_credits" ||
+    requirement.type === "numeric_hours" ||
+    requirement.type === "numeric_cycle";
 
-  if (isNumeric && req.threshold !== undefined) {
-    const value = profileValueFor(req.type, profile);
-    const comparator = req.comparator ?? ">=";
+  if (isNumeric && requirement.threshold !== undefined) {
+    const value = profileValueFor(requirement, profile);
+    const comparator = requirement.comparator ?? ">=";
     if (value === null) {
-      return { requirement: req, status: "pending", detail: req.description };
+      return { requirement, status: "needs_info", detail: requirement.description };
     }
-    const met = compare(value, comparator, req.threshold);
-    if (met) {
+    if (compare(value, comparator, requirement.threshold)) {
       return {
-        requirement: req,
+        requirement,
         status: "met",
-        detail: `Cumples este requisito: tienes ${value}, se necesita ${comparator} ${req.threshold}.`,
+        detail: `Cumples: tienes ${value}; el requisito indica ${comparator} ${requirement.threshold}.`,
       };
     }
-    const gap = req.threshold - value;
-    const margin = MARGIN[req.type] ?? 1;
+
+    const gap = requirement.threshold - value;
+    const margin = MARGIN[requirement.type] ?? 1;
     if (comparator.startsWith(">") && gap > 0 && gap <= margin) {
       return {
-        requirement: req,
+        requirement,
         status: "close",
-        detail: `Estás cerca: te falta${req.type === "numeric_gpa" ? "n" : ""} ${gap.toFixed(
-          req.type === "numeric_gpa" ? 1 : 0
-        )} para llegar a ${req.threshold}.`,
+        detail: `Estás cerca: te faltan ${gap.toFixed(
+          requirement.type === "numeric_gpa" ? 1 : 0
+        )} para llegar a ${requirement.threshold}.`,
       };
     }
     return {
-      requirement: req,
+      requirement,
       status: "unmet",
-      detail: `Aún no cumples: tienes ${value}, se necesita ${comparator} ${req.threshold}.`,
+      detail: `Aún no cumples: tienes ${value}; el requisito indica ${comparator} ${requirement.threshold}.`,
     };
   }
 
-  // boolean / non_verifiable: la app no puede confirmarlo con los datos que tiene.
+  if (requirement.type === "boolean") {
+    return {
+      requirement,
+      status: "needs_info",
+      detail:
+        requirement.nonVerifiableNote ??
+        "Necesitamos que confirmes este dato para personalizar mejor el resultado.",
+    };
+  }
+
+  if (requirement.id === "beca-excelencia-academica-req-4") {
+    const rankLabel = {
+      top_tenth: "décimo superior",
+      top_fifth: "quinto superior",
+      top_third: "tercio superior",
+      none: "ninguno de los grupos declarados",
+      unknown: "posición académica no registrada",
+    }[profile.facts.academicRank];
+    const rankContext = profile.facts.academicRank === "unknown"
+      ? "Aún no registraste una posición académica oficial."
+      : `Registraste ${rankLabel} como tu posición académica.`;
+    return {
+      requirement,
+      status: "official",
+      detail: `${rankContext} Es una señal orientativa, pero no confirma el beneficio: la UTP asigna el cupo comparando el orden de mérito completo por campus y carrera.`,
+    };
+  }
+
   return {
-    requirement: req,
-    status: "pending",
-    detail: req.nonVerifiableNote ?? req.description,
+    requirement,
+    status: "official",
+    detail:
+      requirement.nonVerifiableNote ??
+      "Este requisito depende de una revisión o trámite oficial y MetaUTP no puede confirmarlo.",
   };
 }
 
 export interface OpportunityEvaluation {
   evaluations: RequirementEvaluation[];
-  percent: number;
   metCount: number;
+  closeCount: number;
+  needsInfoCount: number;
+  officialCount: number;
+  unmetCount: number;
+  measurableCount: number;
   totalCount: number;
   dominantStatus: RequirementStatus;
+  gateEvaluations: GateEvaluation[];
+  essentialMetCount: number;
+  essentialUnknownCount: number;
+  essentialUnmetCount: number;
+  contextualUnknownCount: number;
+  confirmedCount: number;
+  comparisonTotal: number;
+  matchState: OpportunityMatchState;
+  primaryGap: string | null;
   window: WindowInfo;
+}
+
+export type OpportunityMatchState =
+  | "recommended"
+  | "close"
+  | "needs_data"
+  | "special_condition"
+  | "official_validation"
+  | "not_applicable"
+  | "general_catalog";
+
+const REQUIREMENT_STOP_WORDS = new Set([
+  "acreditar", "alumno", "contar", "cumplir", "condicion", "estar", "haber",
+  "mantener", "periodo", "requisito", "responsable", "tener", "universidad",
+]);
+
+function comparableTokens(value: string) {
+  return new Set(
+    value
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .split(/[^a-z0-9]+/)
+      .filter((token) => token.length >= 5 && !REQUIREMENT_STOP_WORDS.has(token))
+  );
+}
+
+function gateMatchesRequirement(gate: GateEvaluation, evaluation: RequirementEvaluation) {
+  if (evaluation.requirement.type !== "boolean") return false;
+  const gateTokens = comparableTokens(gate.gate.label);
+  const requirementTokens = comparableTokens(evaluation.requirement.description);
+  if (gateTokens.size === 0 || requirementTokens.size === 0) return false;
+  const overlap = [...gateTokens].filter((token) => requirementTokens.has(token)).length;
+  return overlap >= 1 && overlap / Math.min(gateTokens.size, requirementTokens.size) >= 0.34;
+}
+
+function reconcileBooleanRequirements(
+  evaluations: RequirementEvaluation[],
+  gateEvaluations: GateEvaluation[]
+) {
+  const matchedGateIds = new Set<string>();
+  const reconciled = evaluations.map((evaluation) => {
+    const gate = gateEvaluations.find((candidate) =>
+      gateMatchesRequirement(candidate, evaluation)
+    );
+    if (!gate) return evaluation;
+    matchedGateIds.add(gate.gate.id);
+    if (gate.result === "met") {
+      return { ...evaluation, status: "met" as const, detail: "Confirmado con los datos que registraste." };
+    }
+    if (gate.result === "unmet") {
+      return { ...evaluation, status: "unmet" as const, detail: "Este dato declarado no coincide con la condición." };
+    }
+    return { ...evaluation, status: "needs_info" as const, detail: "Completa este dato para comparar el requisito." };
+  });
+  return { reconciled, matchedGateIds };
 }
 
 export function evaluateOpportunity(
   opportunity: Opportunity,
   profile: StudentProfile
 ): OpportunityEvaluation {
-  const evaluations = opportunity.requirements.map((r) => evaluateRequirement(r, profile));
-  const metCount = evaluations.filter((e) => e.status === "met").length;
-  const closeCount = evaluations.filter((e) => e.status === "close").length;
-  const unmetCount = evaluations.filter((e) => e.status === "unmet").length;
-  const total = evaluations.length;
-  const percent =
-    total === 0 ? 100 : Math.round(((metCount + closeCount * 0.5) / total) * 100);
+  const rawEvaluations = opportunity.requirements.map((requirement) =>
+    evaluateRequirement(requirement, profile)
+  );
+  const gateEvaluations = evaluateOpportunityGates(opportunity, profile);
+  const { reconciled: evaluations, matchedGateIds } = reconcileBooleanRequirements(
+    rawEvaluations,
+    gateEvaluations
+  );
+  const count = (status: RequirementStatus) =>
+    evaluations.filter((evaluation) => evaluation.status === status).length;
+  const metCount = count("met");
+  const closeCount = count("close");
+  const needsInfoCount = count("needs_info");
+  const officialCount = count("official");
+  const unmetCount = count("unmet");
+  const measurableCount = metCount + closeCount + unmetCount;
+  const essentialMetCount = gateEvaluations.filter((item) => item.result === "met").length;
+  const essentialUnknownCount = gateEvaluations.filter((item) => item.result === "unknown").length;
+  const essentialUnmetCount = gateEvaluations.filter((item) => item.result === "unmet").length;
+  const contextualUnknownCount = gateEvaluations.filter(
+    (item) => item.result === "unknown" && gateRequiresContext(item.gate)
+  ).length;
+  const hasUnknownSensitiveCondition = gateEvaluations.some(
+    (item) => item.result === "unknown" && "sensitive" in item.gate && item.gate.sensitive
+  );
+  const additionalGates = gateEvaluations.filter((item) => !matchedGateIds.has(item.gate.id));
+  const confirmedCount = metCount + additionalGates.filter((item) => item.result === "met").length;
+  const comparisonTotal = evaluations.length + additionalGates.length;
 
-  let dominantStatus: RequirementStatus = "pending";
+  let dominantStatus: RequirementStatus = "met";
   if (unmetCount > 0) dominantStatus = "unmet";
   else if (closeCount > 0) dominantStatus = "close";
-  else if (metCount === total && total > 0) dominantStatus = "met";
+  else if (needsInfoCount > 0) dominantStatus = "needs_info";
+  else if (officialCount > 0) dominantStatus = "official";
+
+  const window = evaluateWindow(opportunity.windowStart, opportunity.windowEnd);
+  let matchState: OpportunityMatchState = "recommended";
+  if (opportunity.actionability === "informational" || window.status === "closed") {
+    matchState = "general_catalog";
+  } else if (essentialUnmetCount > 0) {
+    matchState = "not_applicable";
+  } else if (hasUnknownSensitiveCondition) {
+    matchState = "special_condition";
+  } else if (essentialUnknownCount > 0 || needsInfoCount > 0) {
+    matchState = "needs_data";
+  } else if (closeCount > 0 || unmetCount > 0) {
+    matchState = "close";
+  } else if (officialCount > 0) {
+    matchState = "official_validation";
+  }
+
+  const firstUnmetGate = gateEvaluations.find((item) => item.result === "unmet");
+  const firstUnknownGate = gateEvaluations.find((item) => item.result === "unknown");
+  const firstRequirementGap = evaluations.find((item) => item.status !== "met");
+  const primaryGap =
+    firstUnmetGate?.gate.label ??
+    firstUnknownGate?.gate.label ??
+    firstRequirementGap?.requirement.description ??
+    null;
 
   return {
     evaluations,
-    percent,
     metCount,
-    totalCount: total,
+    closeCount,
+    needsInfoCount,
+    officialCount,
+    unmetCount,
+    measurableCount,
+    totalCount: evaluations.length,
     dominantStatus,
-    window: evaluateWindow(opportunity.windowStart, opportunity.windowEnd),
+    gateEvaluations,
+    essentialMetCount,
+    essentialUnknownCount,
+    essentialUnmetCount,
+    contextualUnknownCount,
+    confirmedCount,
+    comparisonTotal,
+    matchState,
+    primaryGap,
+    window,
   };
+}
+
+/**
+ * La vista del alumno no es un buscador del catálogo completo. Oculta
+ * convocatorias cerradas, condiciones contextuales aún no habilitadas y
+ * oportunidades que contradicen un dato esencial declarado. Los requisitos
+ * académicos que todavía no se cumplen sí permanecen visibles: son accionables.
+ */
+export function isPersonalizedOpportunityVisible(
+  evaluation: OpportunityEvaluation,
+  opportunity?: Opportunity
+) {
+  if (evaluation.window.status === "closed") return false;
+  if (opportunity?.alwaysVisible) return true;
+  if (evaluation.contextualUnknownCount > 0) return false;
+  if (evaluation.essentialUnmetCount > 0) return false;
+  return true;
+}
+
+export interface RankingInfo {
+  score: number;
+  reason: string;
+}
+
+const STATUS_SCORE: Record<RequirementStatus, number> = {
+  met: 48,
+  official: 38,
+  close: 28,
+  needs_info: 18,
+  unmet: 0,
+};
+
+const WINDOW_SCORE: Record<WindowStatus, number> = {
+  active: 36,
+  upcoming: 20,
+  unconfirmed: -8,
+  closed: -45,
+};
+
+const MATCH_SCORE: Record<OpportunityMatchState, number> = {
+  recommended: 90,
+  close: 72,
+  official_validation: 58,
+  needs_data: 38,
+  special_condition: -60,
+  general_catalog: 2,
+  not_applicable: -80,
+};
+
+/**
+ * Jerarquiza sin ocultar oportunidades. La puntuación solo sirve para ordenar;
+ * nunca se presenta como una probabilidad de admisión.
+ */
+export function rankOpportunity(
+  opportunity: Opportunity,
+  evaluation: OpportunityEvaluation,
+  profile?: Pick<
+    StudentProfile,
+    "preferredCategories" | "goal" | "goalNote"
+  >
+): RankingInfo {
+  const preferredCategories: OpportunityCategory[] = profile?.preferredCategories ?? [];
+  const preferred = preferredCategories.includes(opportunity.category);
+  const actionable = opportunity.actionability !== "informational";
+  let score =
+    MATCH_SCORE[evaluation.matchState] +
+    STATUS_SCORE[evaluation.dominantStatus] +
+    WINDOW_SCORE[evaluation.window.status];
+
+  score += evaluation.metCount * 7;
+  score += evaluation.closeCount * 3;
+  score -= evaluation.unmetCount * 12;
+  score -= evaluation.needsInfoCount * 2;
+  score -= evaluation.essentialUnknownCount * 18;
+  score -= evaluation.essentialUnmetCount * 80;
+  if (preferred) score += 16;
+  if (!actionable) score -= 55;
+  if (profile) score += goalRelevance(opportunity, profile.goal, profile.goalNote);
+
+  if (
+    evaluation.window.status === "active" &&
+    evaluation.unmetCount === 0 &&
+    (evaluation.window.daysUntilEnd ?? 99) <= 14
+  ) {
+    score += 6;
+  }
+
+  let reason = "Coincide con los datos que registraste";
+  if (!actionable) reason = "Referencia útil; no tiene postulación individual";
+  else if (evaluation.window.status === "closed") reason = "Convocatoria cerrada; consérvala como referencia";
+  else if (evaluation.essentialUnmetCount > 0) reason = "Una condición esencial declarada no coincide";
+  else if (evaluation.unmetCount > 0) reason = "Tiene un requisito medible que aún no cumples";
+  else if (evaluation.matchState === "special_condition") reason = "Solo aparece en el catálogo porque requiere una condición personal específica";
+  else if (evaluation.closeCount > 0) reason = "Estás cerca de completar un requisito medible";
+  else if (evaluation.essentialUnknownCount > 0) reason = "Falta un dato esencial antes de recomendarla";
+  else if (evaluation.needsInfoCount > 0) reason = "Puede subir al completar información pendiente";
+  else if (evaluation.officialCount > 0) reason = "Tus datos encajan; falta validación oficial";
+  else if (evaluation.measurableCount > 0) reason = "Cumples los requisitos medibles registrados";
+
+  if (preferred && actionable && evaluation.window.status !== "closed") {
+    reason = `${reason} · coincide con tus intereses`;
+  }
+
+  return { score, reason };
 }
 
 export function evaluateWindow(start: string | null, end: string | null): WindowInfo {
@@ -140,23 +466,23 @@ export function evaluateWindow(start: string | null, end: string | null): Window
   today.setHours(0, 0, 0, 0);
 
   if (!start && !end) {
-    return { status: "ongoing", label: "Sin fecha límite fija — verifica vigencia" };
+    return { status: "unconfirmed", label: "Fecha por confirmar" };
   }
 
-  const startDate = start ? new Date(start + "T00:00:00") : null;
-  const endDate = end ? new Date(end + "T00:00:00") : null;
+  const startDate = start ? new Date(`${start}T00:00:00`) : null;
+  const endDate = end ? new Date(`${end}T00:00:00`) : null;
 
   if (startDate && today < startDate) {
     const days = Math.ceil((startDate.getTime() - today.getTime()) / 86_400_000);
     return {
       status: "upcoming",
       daysUntilStart: days,
-      label: days === 0 ? "Abre hoy" : `Abre en ${days} día${days === 1 ? "" : "s"}`,
+      label: `Abre el ${formatCompactDate(start!)}`,
     };
   }
 
   if (endDate && today > endDate) {
-    return { status: "closed", label: "Convocatoria cerrada" };
+    return { status: "closed", label: `Cerró el ${formatCompactDate(end!)}` };
   }
 
   if (endDate) {
@@ -164,16 +490,34 @@ export function evaluateWindow(start: string | null, end: string | null): Window
     return {
       status: "active",
       daysUntilEnd: days,
-      label: days === 0 ? "Cierra hoy" : `Cierra en ${days} día${days === 1 ? "" : "s"}`,
+      label: days === 0 ? "Cierra hoy" : `Hasta el ${formatCompactDate(end!)}`,
     };
   }
 
-  return { status: "active", label: "Convocatoria abierta" };
+  return { status: "active", label: start ? `Vigente desde el ${formatCompactDate(start)}` : "Convocatoria vigente" };
 }
 
-export function weightedAverage(courses: { credits: number; grade: number }[]): number {
-  const totalCredits = courses.reduce((sum, c) => sum + c.credits, 0);
-  if (totalCredits === 0) return 0;
-  const totalPoints = courses.reduce((sum, c) => sum + c.credits * c.grade, 0);
+function formatCompactDate(iso: string): string {
+  return new Date(`${iso}T00:00:00`).toLocaleDateString("es-PE", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+export function weightedAverage(courses: { credits: number; grade: number | null }[]): number | null {
+  const confirmedCourses = courses.filter(
+    (course): course is { credits: number; grade: number } =>
+      Number.isFinite(course.credits) &&
+      course.credits > 0 &&
+      course.grade !== null &&
+      Number.isFinite(course.grade)
+  );
+  const totalCredits = confirmedCourses.reduce((sum, course) => sum + course.credits, 0);
+  if (totalCredits === 0) return null;
+  const totalPoints = confirmedCourses.reduce(
+    (sum, course) => sum + course.credits * course.grade,
+    0
+  );
   return Math.round((totalPoints / totalCredits) * 100) / 100;
 }
